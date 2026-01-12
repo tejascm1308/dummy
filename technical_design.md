@@ -317,422 +317,812 @@ Permissions:
 
 ## 3. Database Schema
 
-### Overview
+### Why MongoDB for This Project?
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│            WHY MONGODB IS BETTER FOR OUR USE CASE               │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ✅ DYNAMIC ROLES                                               │
+│     • Admin creates custom roles with varying fields            │
+│     • Each role has different profile fields                    │
+│     • MongoDB's flexible schema = perfect fit                   │
+│                                                                 │
+│  ✅ FLEXIBLE PERMISSIONS                                        │
+│     • Permissions are arrays of objects                         │
+│     • Easy to add/remove without schema changes                │
+│     • Natural fit for [{permission, scope}] structure          │
+│                                                                 │
+│  ✅ EMBEDDED DOCUMENTS                                          │
+│     • Role + permissions + profile fields in one document      │
+│     • Faster reads, fewer lookups                               │
+│     • Natural hierarchical structure                            │
+│                                                                 │
+│  ✅ HIGH VOLUME WRITES                                          │
+│     • Audit logs, activity feeds                                │
+│     • Real-time updates                                         │
+│     • Excellent write performance                               │
+│                                                                 │
+│  ✅ FUTURE FLEXIBILITY                                          │
+│     • Add new fields without migrations                         │
+│     • Easy to evolve schema as product grows                   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Database Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                    DATABASE ARCHITECTURE                        │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  PRIMARY DATABASE: PostgreSQL                                   │
-│  ────────────────────────────────                               │
-│  • Core entities (users, roles, companies)                     │
-│  • Relationships                                               │
-│  • Tasks & submissions                                         │
-│  • Attendance                                                  │
-│  • Strong consistency                                          │
-│                                                                 │
-│  SECONDARY (Optional): MongoDB                                  │
-│  ──────────────────────────────                                 │
-│  • Audit logs (high volume)                                    │
-│  • Chat messages (flexible schema)                             │
+│  PRIMARY DATABASE: MongoDB                                      │
+│  ─────────────────────────                                      │
+│  • All core entities                                           │
+│  • Dynamic roles and permissions                               │
+│  • Users, tasks, submissions                                   │
+│  • Attendance, meetings                                        │
+│  • Audit logs, chat messages                                   │
 │  • Activity feeds                                              │
 │                                                                 │
-│  CACHE: Redis                                                   │
-│  ────────────                                                   │
-│  • Session management                                          │
-│  • Real-time presence                                          │
-│  • Rate limiting                                               │
+│  FILE STORAGE: S3 / Cloud Storage                              │
+│  ────────────────────────────                                   │
+│  • Uploaded files                                              │
+│  • Profile photos                                              │
+│  • Certificates                                                │
+│  • Meeting recordings                                          │
+│                                                                 │
+│  NOTE: Redis caching deferred for later if needed              │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### PostgreSQL Schema
+---
 
-#### Core Tables
+### MongoDB Collections
 
-```sql
--- ============================================================
--- COMPANIES (Tenants)
--- ============================================================
-CREATE TABLE companies (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name            VARCHAR(255) NOT NULL,
-    slug            VARCHAR(100) UNIQUE NOT NULL,  -- subdomain
-    logo_url        TEXT,
-    timezone        VARCHAR(50) DEFAULT 'UTC',
-    settings        JSONB DEFAULT '{}',   -- flexible settings
-    status          VARCHAR(20) DEFAULT 'active',  -- active, suspended
-    created_at      TIMESTAMP DEFAULT NOW(),
-    updated_at      TIMESTAMP DEFAULT NOW()
-);
+#### 1. companies
 
--- ============================================================
--- ROLE DEFINITIONS (Dynamic roles per company)
--- ============================================================
-CREATE TABLE role_definitions (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id      UUID REFERENCES companies(id) ON DELETE CASCADE,
-    name            VARCHAR(100) NOT NULL,
-    display_name    VARCHAR(100) NOT NULL,
-    description     TEXT,
-    category        VARCHAR(20) NOT NULL,  -- 'admin', 'staff', 'intern'
-    icon            VARCHAR(50),
-    color           VARCHAR(20),
-    is_system       BOOLEAN DEFAULT FALSE,  -- built-in roles
-    is_deletable    BOOLEAN DEFAULT TRUE,
-    created_at      TIMESTAMP DEFAULT NOW(),
-    
-    UNIQUE(company_id, name)
-);
-
--- ============================================================
--- ROLE PERMISSIONS (What each role can do)
--- ============================================================
-CREATE TABLE role_permissions (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    role_id         UUID REFERENCES role_definitions(id) ON DELETE CASCADE,
-    permission      VARCHAR(100) NOT NULL,  -- 'task.create'
-    scope           VARCHAR(20) NOT NULL,   -- 'own', 'direct', 'subtree', 'company'
-    
-    UNIQUE(role_id, permission)
-);
-
--- ============================================================
--- ROLE RELATIONSHIPS (How roles connect)
--- ============================================================
-CREATE TABLE role_relationships (
-    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id          UUID REFERENCES companies(id) ON DELETE CASCADE,
-    from_role_id        UUID REFERENCES role_definitions(id) ON DELETE CASCADE,
-    to_role_id          UUID REFERENCES role_definitions(id) ON DELETE CASCADE,
-    relationship_type   VARCHAR(30) NOT NULL,  -- 'manages', 'mentors', 'reviews', etc.
-    
-    UNIQUE(from_role_id, to_role_id, relationship_type)
-);
-
--- ============================================================
--- ROLE PROFILE FIELDS (Custom fields per role)
--- ============================================================
-CREATE TABLE role_profile_fields (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    role_id         UUID REFERENCES role_definitions(id) ON DELETE CASCADE,
-    field_name      VARCHAR(100) NOT NULL,
-    field_type      VARCHAR(30) NOT NULL,  -- 'text', 'date', 'dropdown', 'email', etc.
-    display_name    VARCHAR(100) NOT NULL,
-    is_required     BOOLEAN DEFAULT FALSE,
-    options         JSONB,  -- for dropdown: ["Option1", "Option2"]
-    sort_order      INTEGER DEFAULT 0,
-    
-    UNIQUE(role_id, field_name)
-);
-
--- ============================================================
--- USERS
--- ============================================================
-CREATE TABLE users (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id      UUID REFERENCES companies(id) ON DELETE CASCADE,
-    role_id         UUID REFERENCES role_definitions(id),
-    email           VARCHAR(255) NOT NULL,
-    password_hash   VARCHAR(255) NOT NULL,
-    name            VARCHAR(255) NOT NULL,
-    profile_photo   TEXT,
-    status          VARCHAR(20) DEFAULT 'active',  -- active, suspended, exited
-    last_login      TIMESTAMP,
-    created_by      UUID REFERENCES users(id),
-    created_at      TIMESTAMP DEFAULT NOW(),
-    updated_at      TIMESTAMP DEFAULT NOW(),
-    
-    UNIQUE(company_id, email)
-);
-
--- ============================================================
--- USER PROFILE DATA (Dynamic fields based on role)
--- ============================================================
-CREATE TABLE user_profile_data (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id         UUID REFERENCES users(id) ON DELETE CASCADE,
-    field_id        UUID REFERENCES role_profile_fields(id) ON DELETE CASCADE,
-    value           TEXT,
-    
-    UNIQUE(user_id, field_id)
-);
-
--- ============================================================
--- USER CONNECTIONS (Who reports to whom)
--- ============================================================
-CREATE TABLE user_connections (
-    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    from_user_id        UUID REFERENCES users(id) ON DELETE CASCADE,
-    to_user_id          UUID REFERENCES users(id) ON DELETE CASCADE,
-    relationship_id     UUID REFERENCES role_relationships(id),
-    is_active           BOOLEAN DEFAULT TRUE,
-    created_at          TIMESTAMP DEFAULT NOW(),
-    
-    UNIQUE(from_user_id, to_user_id, relationship_id)
-);
-
--- ============================================================
--- WORKSPACES
--- ============================================================
-CREATE TABLE workspaces (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id      UUID REFERENCES companies(id) ON DELETE CASCADE,
-    name            VARCHAR(255) NOT NULL,
-    description     TEXT,
-    created_by      UUID REFERENCES users(id),
-    status          VARCHAR(20) DEFAULT 'active',  -- active, archived
-    created_at      TIMESTAMP DEFAULT NOW(),
-    updated_at      TIMESTAMP DEFAULT NOW()
-);
-
--- ============================================================
--- WORKSPACE MEMBERS
--- ============================================================
-CREATE TABLE workspace_members (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    workspace_id    UUID REFERENCES workspaces(id) ON DELETE CASCADE,
-    user_id         UUID REFERENCES users(id) ON DELETE CASCADE,
-    role            VARCHAR(30) DEFAULT 'member',  -- owner, member
-    joined_at       TIMESTAMP DEFAULT NOW(),
-    
-    UNIQUE(workspace_id, user_id)
-);
-
--- ============================================================
--- TASK CATEGORIES
--- ============================================================
-CREATE TABLE task_categories (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id      UUID REFERENCES companies(id) ON DELETE CASCADE,
-    name            VARCHAR(100) NOT NULL,
-    icon            VARCHAR(50),
-    color           VARCHAR(20),
-    is_system       BOOLEAN DEFAULT FALSE,  -- built-in categories
-    
-    UNIQUE(company_id, name)
-);
-
--- ============================================================
--- TASKS
--- ============================================================
-CREATE TABLE tasks (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    workspace_id    UUID REFERENCES workspaces(id) ON DELETE CASCADE,
-    category_id     UUID REFERENCES task_categories(id),
-    title           VARCHAR(255) NOT NULL,
-    description     TEXT,
-    deadline        TIMESTAMP NOT NULL,
-    points          INTEGER DEFAULT 10,
-    submission_type VARCHAR(30) NOT NULL,  -- 'file', 'github', 'url', 'text', 'mixed'
-    status          VARCHAR(30) DEFAULT 'active',  -- active, closed
-    created_by      UUID REFERENCES users(id),
-    created_at      TIMESTAMP DEFAULT NOW(),
-    updated_at      TIMESTAMP DEFAULT NOW()
-);
-
--- ============================================================
--- TASK ASSIGNEES
--- ============================================================
-CREATE TABLE task_assignees (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    task_id         UUID REFERENCES tasks(id) ON DELETE CASCADE,
-    user_id         UUID REFERENCES users(id) ON DELETE CASCADE,
-    status          VARCHAR(30) DEFAULT 'pending',  
-                    -- pending, in_progress, submitted, late_submitted, 
-                    -- under_review, approved, revision_needed
-    assigned_at     TIMESTAMP DEFAULT NOW(),
-    
-    UNIQUE(task_id, user_id)
-);
-
--- ============================================================
--- SUBMISSIONS
--- ============================================================
-CREATE TABLE submissions (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    task_id         UUID REFERENCES tasks(id) ON DELETE CASCADE,
-    user_id         UUID REFERENCES users(id) ON DELETE CASCADE,
-    submission_data JSONB NOT NULL,  -- {files: [], links: [], text: ""}
-    is_late         BOOLEAN DEFAULT FALSE,
-    submitted_at    TIMESTAMP DEFAULT NOW(),
-    version         INTEGER DEFAULT 1  -- for resubmissions
-);
-
--- ============================================================
--- REVIEWS (AI + Human)
--- ============================================================
-CREATE TABLE reviews (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    submission_id   UUID REFERENCES submissions(id) ON DELETE CASCADE,
-    reviewer_type   VARCHAR(20) NOT NULL,  -- 'ai', 'human'
-    reviewer_id     UUID REFERENCES users(id),  -- null for AI
-    score           DECIMAL(5,2),
-    max_score       DECIMAL(5,2),
-    remarks         TEXT,
-    detailed_review JSONB,  -- structured feedback
-    created_at      TIMESTAMP DEFAULT NOW()
-);
-
--- ============================================================
--- ATTENDANCE SETTINGS (Per company)
--- ============================================================
-CREATE TABLE attendance_settings (
-    id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id              UUID UNIQUE REFERENCES companies(id) ON DELETE CASCADE,
-    work_start_time         TIME DEFAULT '09:00',
-    work_end_time           TIME DEFAULT '18:00',
-    grace_period_minutes    INTEGER DEFAULT 15,
-    min_hours_full_day      DECIMAL(4,2) DEFAULT 8,
-    min_hours_half_day      DECIMAL(4,2) DEFAULT 4,
-    ip_restriction_enabled  BOOLEAN DEFAULT FALSE,
-    allowed_ips             JSONB DEFAULT '[]',
-    geo_restriction_enabled BOOLEAN DEFAULT FALSE,
-    geo_coordinates         JSONB,  -- {lat, lng, radius_meters}
-    created_at              TIMESTAMP DEFAULT NOW(),
-    updated_at              TIMESTAMP DEFAULT NOW()
-);
-
--- ============================================================
--- LEAVE TYPES
--- ============================================================
-CREATE TABLE leave_types (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id      UUID REFERENCES companies(id) ON DELETE CASCADE,
-    name            VARCHAR(100) NOT NULL,
-    quota           INTEGER,  -- null for unlimited
-    is_paid         BOOLEAN DEFAULT TRUE,
-    
-    UNIQUE(company_id, name)
-);
-
--- ============================================================
--- ATTENDANCE RECORDS
--- ============================================================
-CREATE TABLE attendance_records (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id         UUID REFERENCES users(id) ON DELETE CASCADE,
-    date            DATE NOT NULL,
-    clock_in        TIMESTAMP,
-    clock_out       TIMESTAMP,
-    total_hours     DECIMAL(5,2),
-    status          VARCHAR(30),  -- present, half_day, absent, leave, wfh
-    late_by_minutes INTEGER DEFAULT 0,
-    early_by_minutes INTEGER DEFAULT 0,
-    clock_in_ip     VARCHAR(50),
-    clock_in_geo    JSONB,  -- {lat, lng}
-    notes           TEXT,
-    created_at      TIMESTAMP DEFAULT NOW(),
-    
-    UNIQUE(user_id, date)
-);
-
--- ============================================================
--- LEAVE REQUESTS
--- ============================================================
-CREATE TABLE leave_requests (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id         UUID REFERENCES users(id) ON DELETE CASCADE,
-    leave_type_id   UUID REFERENCES leave_types(id),
-    from_date       DATE NOT NULL,
-    to_date         DATE NOT NULL,
-    reason          TEXT,
-    status          VARCHAR(20) DEFAULT 'pending',  -- pending, approved, rejected
-    approver_id     UUID REFERENCES users(id),
-    approved_at     TIMESTAMP,
-    rejection_reason TEXT,
-    created_at      TIMESTAMP DEFAULT NOW()
-);
-
--- ============================================================
--- LEAVE BALANCE
--- ============================================================
-CREATE TABLE leave_balance (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id         UUID REFERENCES users(id) ON DELETE CASCADE,
-    leave_type_id   UUID REFERENCES leave_types(id) ON DELETE CASCADE,
-    year            INTEGER NOT NULL,
-    total           INTEGER NOT NULL,
-    used            INTEGER DEFAULT 0,
-    
-    UNIQUE(user_id, leave_type_id, year)
-);
-
--- ============================================================
--- MEETINGS
--- ============================================================
-CREATE TABLE meetings (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id      UUID REFERENCES companies(id) ON DELETE CASCADE,
-    title           VARCHAR(255) NOT NULL,
-    description     TEXT,
-    meeting_code    VARCHAR(20) UNIQUE NOT NULL,  -- MET-YYYYMMDD-XXXX
-    passkey         VARCHAR(20) NOT NULL,
-    scheduled_at    TIMESTAMP NOT NULL,
-    duration_minutes INTEGER DEFAULT 60,
-    host_id         UUID REFERENCES users(id),
-    status          VARCHAR(20) DEFAULT 'scheduled',  -- scheduled, ongoing, ended
-    recording_url   TEXT,
-    created_at      TIMESTAMP DEFAULT NOW()
-);
-
--- ============================================================
--- MEETING PARTICIPANTS
--- ============================================================
-CREATE TABLE meeting_participants (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    meeting_id      UUID REFERENCES meetings(id) ON DELETE CASCADE,
-    user_id         UUID REFERENCES users(id) ON DELETE CASCADE,
-    status          VARCHAR(20) DEFAULT 'invited',  -- invited, accepted, declined, joined
-    invited_at      TIMESTAMP DEFAULT NOW(),
-    joined_at       TIMESTAMP,
-    left_at         TIMESTAMP,
-    
-    UNIQUE(meeting_id, user_id)
-);
-
--- ============================================================
--- CERTIFICATES
--- ============================================================
-CREATE TABLE certificates (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id         UUID REFERENCES users(id) ON DELETE CASCADE,
-    template_id     UUID,  -- FK to certificate_templates if needed
-    certificate_no  VARCHAR(50) UNIQUE NOT NULL,
-    issued_date     DATE NOT NULL,
-    data            JSONB NOT NULL,  -- all certificate data
-    file_url        TEXT,
-    created_at      TIMESTAMP DEFAULT NOW()
-);
-
--- ============================================================
--- EMAIL LOGS
--- ============================================================
-CREATE TABLE email_logs (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    company_id      UUID REFERENCES companies(id),
-    to_email        VARCHAR(255) NOT NULL,
-    template        VARCHAR(100) NOT NULL,
-    subject         VARCHAR(255) NOT NULL,
-    status          VARCHAR(20) DEFAULT 'pending',  -- pending, sent, failed
-    sent_at         TIMESTAMP,
-    error           TEXT,
-    created_at      TIMESTAMP DEFAULT NOW()
-);
-
--- ============================================================
--- INDEXES
--- ============================================================
-CREATE INDEX idx_users_company ON users(company_id);
-CREATE INDEX idx_users_role ON users(role_id);
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_tasks_workspace ON tasks(workspace_id);
-CREATE INDEX idx_tasks_deadline ON tasks(deadline);
-CREATE INDEX idx_attendance_user_date ON attendance_records(user_id, date);
-CREATE INDEX idx_submissions_task ON submissions(task_id);
-CREATE INDEX idx_meetings_scheduled ON meetings(scheduled_at);
+```javascript
+// Collection: companies
+{
+  _id: ObjectId,
+  name: "Acme Corp",
+  slug: "acme-corp",                    // subdomain identifier
+  logo_url: "https://...",
+  timezone: "Asia/Kolkata",
+  
+  // Flexible settings - can add any setting without schema change
+  settings: {
+    branding: {
+      primary_color: "#4F46E5",
+      logo_dark: "https://..."
+    },
+    features: {
+      github_integration: true,
+      video_calls: true
+    }
+  },
+  
+  // Attendance configuration embedded
+  attendance_config: {
+    enabled: true,
+    methods: ["manual"],                // ["manual", "ip", "geo"]
+    work_start: "09:00",
+    work_end: "18:00",
+    grace_minutes: 15,
+    min_hours_full: 8,
+    min_hours_half: 4,
+    allowed_ips: ["192.168.1.0/24"],
+    geo_fence: {
+      enabled: false,
+      lat: 12.9716,
+      lng: 77.5946,
+      radius_meters: 500
+    }
+  },
+  
+  // Leave types embedded (company-specific)
+  leave_types: [
+    { name: "Casual", quota: 12, is_paid: true },
+    { name: "Sick", quota: 6, is_paid: true },
+    { name: "WFH", quota: null, is_paid: true }  // null = unlimited
+  ],
+  
+  // Task categories (can be customized)
+  task_categories: [
+    { name: "Development", icon: "💻", color: "#3B82F6" },
+    { name: "Documentation", icon: "📝", color: "#10B981" },
+    { name: "Research", icon: "🔍", color: "#8B5CF6" },
+    { name: "Design", icon: "🎨", color: "#F59E0B" },
+    { name: "Testing", icon: "🧪", color: "#EF4444" },
+    { name: "Data", icon: "📊", color: "#06B6D4" },
+    { name: "DevOps", icon: "⚙️", color: "#6366F1" },
+    { name: "Presentation", icon: "📣", color: "#EC4899" },
+    { name: "Other", icon: "📁", color: "#6B7280" }
+  ],
+  
+  status: "active",                     // active, suspended
+  created_at: ISODate,
+  updated_at: ISODate
+}
 ```
+
+---
+
+#### 2. roles
+
+```javascript
+// Collection: roles
+{
+  _id: ObjectId,
+  company_id: ObjectId,                 // ref: companies
+  
+  name: "technical_mentor",             // system name (lowercase, no spaces)
+  display_name: "Technical Mentor",
+  description: "Guides interns on technical tasks",
+  category: "staff",                    // "admin", "staff", "intern"
+  
+  icon: "👨‍💻",
+  color: "#4F46E5",
+  
+  is_system: false,                     // built-in roles = true
+  is_deletable: true,
+  
+  // Permissions embedded - no separate table needed!
+  permissions: [
+    { permission: "user.read", scope: "subtree" },
+    { permission: "task.create", scope: "subtree" },
+    { permission: "task.read", scope: "subtree" },
+    { permission: "task.update", scope: "subtree" },
+    { permission: "task.assign", scope: "subtree" },
+    { permission: "submission.read", scope: "subtree" },
+    { permission: "submission.review", scope: "subtree" },
+    { permission: "submission.score", scope: "subtree" },
+    { permission: "attendance.read", scope: "subtree" },
+    { permission: "leave.approve", scope: "direct" },
+    { permission: "meeting.schedule", scope: "subtree" },
+    { permission: "report.view", scope: "subtree" },
+    { permission: "report.generate", scope: "subtree" },
+    { permission: "config.profile", scope: "own" }
+  ],
+  
+  // Custom profile fields for this role
+  profile_fields: [
+    { 
+      name: "department", 
+      display_name: "Department",
+      type: "dropdown",
+      required: true,
+      options: ["Engineering", "Design", "QA", "Data"]
+    },
+    { 
+      name: "experience_years", 
+      display_name: "Years of Experience",
+      type: "number",
+      required: false
+    },
+    {
+      name: "specialization",
+      display_name: "Specialization",
+      type: "text",
+      required: false
+    }
+  ],
+  
+  // Which roles can this role connect to?
+  allowed_relationships: [
+    { to_role: ObjectId, type: "mentors" },
+    { to_role: ObjectId, type: "reviews" }
+  ],
+  
+  created_at: ISODate,
+  updated_at: ISODate
+}
+
+// Index
+{ company_id: 1, name: 1 } // unique
+```
+
+---
+
+#### 3. role_relationships
+
+```javascript
+// Collection: role_relationships
+// Defines the ORG STRUCTURE (which roles can connect to which)
+{
+  _id: ObjectId,
+  company_id: ObjectId,
+  
+  from_role_id: ObjectId,               // e.g., "Mentor" role
+  to_role_id: ObjectId,                 // e.g., "Intern" role
+  relationship_type: "mentors",         // "manages", "mentors", "reviews", "supports", "oversees"
+  
+  created_at: ISODate
+}
+
+// Index
+{ company_id: 1 }
+{ from_role_id: 1, to_role_id: 1, relationship_type: 1 } // unique
+```
+
+---
+
+#### 4. users
+
+```javascript
+// Collection: users
+{
+  _id: ObjectId,
+  company_id: ObjectId,
+  role_id: ObjectId,                    // ref: roles
+  
+  email: "john@acme.com",
+  password_hash: "$2b$12$...",
+  name: "John Smith",
+  profile_photo: "https://...",
+  
+  // Dynamic profile data (based on role's profile_fields)
+  profile_data: {
+    department: "Engineering",
+    experience_years: 5,
+    specialization: "Backend Development"
+  },
+  
+  // GitHub integration (optional)
+  github: {
+    connected: true,
+    username: "johnsmith",
+    access_token: "encrypted_token",
+    connected_at: ISODate
+  },
+  
+  status: "active",                     // active, suspended, exited
+  
+  // For first login flow
+  temp_password: true,                  // true if needs to change password
+  
+  last_login: ISODate,
+  created_by: ObjectId,                 // who created this user
+  created_at: ISODate,
+  updated_at: ISODate
+}
+
+// Indexes
+{ company_id: 1, email: 1 } // unique
+{ company_id: 1, role_id: 1 }
+{ company_id: 1, status: 1 }
+```
+
+---
+
+#### 5. user_connections
+
+```javascript
+// Collection: user_connections
+// Actual relationships between USERS (not roles)
+{
+  _id: ObjectId,
+  company_id: ObjectId,
+  
+  from_user_id: ObjectId,               // e.g., John (Mentor)
+  to_user_id: ObjectId,                 // e.g., Alice (Intern)
+  relationship_type: "mentors",
+  
+  is_active: true,
+  created_at: ISODate,
+  deactivated_at: ISODate               // when relationship ended
+}
+
+// Indexes
+{ company_id: 1, from_user_id: 1 }
+{ company_id: 1, to_user_id: 1 }
+{ from_user_id: 1, to_user_id: 1, relationship_type: 1 } // unique
+```
+
+---
+
+#### 6. workspaces
+
+```javascript
+// Collection: workspaces
+{
+  _id: ObjectId,
+  company_id: ObjectId,
+  
+  name: "Backend Development Q1 2026",
+  description: "All backend tasks for Q1",
+  
+  created_by: ObjectId,                 // user who created
+  
+  // Members embedded for quick access
+  members: [
+    { user_id: ObjectId, role: "owner", joined_at: ISODate },
+    { user_id: ObjectId, role: "member", joined_at: ISODate }
+  ],
+  
+  status: "active",                     // active, archived
+  created_at: ISODate,
+  updated_at: ISODate
+}
+
+// Indexes
+{ company_id: 1 }
+{ "members.user_id": 1 }
+```
+
+---
+
+#### 7. tasks
+
+```javascript
+// Collection: tasks
+{
+  _id: ObjectId,
+  company_id: ObjectId,
+  workspace_id: ObjectId,
+  
+  title: "Build User Authentication API",
+  description: "Implement JWT-based authentication...",  // rich text
+  
+  category: "Development",              // from company's task_categories
+  
+  deadline: ISODate,
+  points: 10,
+  
+  submission_type: "mixed",             // "file", "github", "url", "text", "mixed"
+  
+  // What to submit (for mixed type)
+  submission_requirements: {
+    allow_files: true,
+    allow_github: true,
+    allow_url: false,
+    allow_text: true,
+    max_files: 5
+  },
+  
+  // Assignees embedded
+  assignees: [
+    { 
+      user_id: ObjectId, 
+      status: "in_progress",            // pending, in_progress, submitted, late_submitted, under_review, approved, revision_needed
+      assigned_at: ISODate 
+    }
+  ],
+  
+  status: "active",                     // active, closed
+  
+  created_by: ObjectId,
+  created_at: ISODate,
+  updated_at: ISODate
+}
+
+// Indexes
+{ company_id: 1, workspace_id: 1 }
+{ "assignees.user_id": 1 }
+{ deadline: 1 }
+```
+
+---
+
+#### 8. submissions
+
+```javascript
+// Collection: submissions
+{
+  _id: ObjectId,
+  company_id: ObjectId,
+  task_id: ObjectId,
+  user_id: ObjectId,
+  
+  // Flexible submission data
+  submission_data: {
+    files: [
+      { name: "auth.zip", url: "https://s3...", size: 1024000 }
+    ],
+    github_links: [
+      { type: "pr", url: "https://github.com/...", title: "Add auth API" }
+    ],
+    text: "I completed the task by implementing..."
+  },
+  
+  is_late: false,
+  version: 1,                           // for resubmissions
+  
+  submitted_at: ISODate,
+  
+  // Reviews embedded
+  reviews: [
+    {
+      type: "ai",
+      score: 8,
+      max_score: 10,
+      remarks: "Good implementation...",
+      detailed_review: {
+        strengths: ["Clean code", "Good error handling"],
+        improvements: ["Add rate limiting", "Missing refresh tokens"],
+        metrics: { commits: 12, lines_added: 450 }
+      },
+      reviewed_at: ISODate
+    },
+    {
+      type: "human",
+      reviewer_id: ObjectId,
+      score: 8.5,
+      max_score: 10,
+      remarks: "Excellent work, just minor improvements needed",
+      reviewed_at: ISODate
+    }
+  ],
+  
+  // Final status after review
+  final_status: "approved",             // approved, revision_needed
+  final_score: 8.5,
+  
+  created_at: ISODate
+}
+
+// Indexes
+{ task_id: 1, user_id: 1 }
+{ company_id: 1, user_id: 1 }
+```
+
+---
+
+#### 9. attendance
+
+```javascript
+// Collection: attendance
+{
+  _id: ObjectId,
+  company_id: ObjectId,
+  user_id: ObjectId,
+  
+  date: ISODate,                        // just the date part
+  
+  clock_in: ISODate,
+  clock_out: ISODate,
+  
+  total_hours: 8.5,                     // calculated
+  
+  status: "present",                    // present, half_day, absent, leave, wfh
+  
+  late_by_minutes: 0,
+  early_by_minutes: 0,
+  
+  // Tracking metadata
+  clock_in_info: {
+    ip: "192.168.1.100",
+    location: { lat: 12.9716, lng: 77.5946 },
+    method: "manual"                    // manual, ip_verified, geo_verified
+  },
+  
+  notes: "",
+  
+  created_at: ISODate,
+  updated_at: ISODate
+}
+
+// Indexes
+{ company_id: 1, user_id: 1, date: 1 } // unique
+{ company_id: 1, date: 1 }
+```
+
+---
+
+#### 10. leave_requests
+
+```javascript
+// Collection: leave_requests
+{
+  _id: ObjectId,
+  company_id: ObjectId,
+  user_id: ObjectId,
+  
+  leave_type: "Casual",                 // from company's leave_types
+  from_date: ISODate,
+  to_date: ISODate,
+  days: 2,                              // calculated
+  
+  reason: "Family function",
+  
+  status: "pending",                    // pending, approved, rejected
+  
+  approver_id: ObjectId,
+  approved_at: ISODate,
+  rejection_reason: null,
+  
+  created_at: ISODate
+}
+
+// Indexes
+{ company_id: 1, user_id: 1 }
+{ company_id: 1, status: 1 }
+```
+
+---
+
+#### 11. leave_balance
+
+```javascript
+// Collection: leave_balance
+{
+  _id: ObjectId,
+  company_id: ObjectId,
+  user_id: ObjectId,
+  year: 2026,
+  
+  balances: [
+    { type: "Casual", total: 12, used: 2, remaining: 10 },
+    { type: "Sick", total: 6, used: 0, remaining: 6 }
+  ],
+  
+  updated_at: ISODate
+}
+
+// Indexes
+{ company_id: 1, user_id: 1, year: 1 } // unique
+```
+
+---
+
+#### 12. meetings
+
+```javascript
+// Collection: meetings
+{
+  _id: ObjectId,
+  company_id: ObjectId,
+  
+  title: "Weekly 1:1 with Alice",
+  description: "Weekly catch-up meeting",
+  
+  meeting_code: "MET-20260115-A1B2",    // unique identifier
+  passkey: "1234",
+  
+  scheduled_at: ISODate,
+  duration_minutes: 60,
+  
+  host_id: ObjectId,
+  
+  // Participants embedded
+  participants: [
+    { 
+      user_id: ObjectId, 
+      status: "accepted",               // invited, accepted, declined, joined
+      invited_at: ISODate,
+      joined_at: ISODate,
+      left_at: ISODate
+    }
+  ],
+  
+  status: "scheduled",                  // scheduled, ongoing, ended, cancelled
+  
+  recording_url: null,
+  
+  created_at: ISODate
+}
+
+// Indexes
+{ company_id: 1, scheduled_at: 1 }
+{ meeting_code: 1 } // unique
+{ "participants.user_id": 1 }
+```
+
+---
+
+#### 13. messages (DMs & Discussions)
+
+```javascript
+// Collection: messages
+{
+  _id: ObjectId,
+  company_id: ObjectId,
+  
+  // Context: where is this message?
+  context_type: "dm",                   // "dm", "task_comment", "workspace_discussion"
+  context_id: ObjectId,                 // user_id for DM, task_id, workspace_id
+  
+  sender_id: ObjectId,
+  
+  content: "Hey, can you review my code?",
+  
+  // For rich messages
+  attachments: [
+    { type: "image", url: "https://...", name: "screenshot.png" }
+  ],
+  
+  // For replies
+  reply_to: ObjectId,                   // message_id if reply
+  
+  is_edited: false,
+  edited_at: null,
+  
+  created_at: ISODate
+}
+
+// Indexes
+{ context_type: 1, context_id: 1, created_at: 1 }
+{ company_id: 1, sender_id: 1 }
+```
+
+---
+
+#### 14. announcements
+
+```javascript
+// Collection: announcements
+{
+  _id: ObjectId,
+  company_id: ObjectId,
+  workspace_id: ObjectId,
+  
+  type: "announcement",                 // "announcement", "resource"
+  
+  title: "New Project Starting Monday",
+  content: "We will be starting...",    // rich text
+  
+  attachments: [
+    { name: "Guidelines.pdf", url: "https://...", size: 2048000 }
+  ],
+  
+  posted_by: ObjectId,
+  
+  // Comments embedded (for simple cases)
+  comments: [
+    {
+      _id: ObjectId,
+      user_id: ObjectId,
+      content: "Looking forward to it!",
+      created_at: ISODate
+    }
+  ],
+  
+  created_at: ISODate,
+  updated_at: ISODate
+}
+
+// Indexes
+{ company_id: 1, workspace_id: 1, created_at: -1 }
+```
+
+---
+
+#### 15. certificates
+
+```javascript
+// Collection: certificates
+{
+  _id: ObjectId,
+  company_id: ObjectId,
+  user_id: ObjectId,
+  
+  certificate_no: "CERT-2026-001234",   // unique
+  issued_date: ISODate,
+  
+  // All certificate data for PDF generation
+  data: {
+    intern_name: "Alice Johnson",
+    company_name: "Acme Corp",
+    duration: "Jan 2026 - Mar 2026",
+    tasks_completed: 25,
+    overall_score: 87,
+    mentor_name: "John Smith",
+    department: "Engineering"
+  },
+  
+  file_url: "https://s3.../cert.pdf",
+  
+  // For verification
+  verification_code: "abc123xyz",
+  
+  created_at: ISODate
+}
+
+// Indexes
+{ certificate_no: 1 } // unique
+{ company_id: 1, user_id: 1 }
+{ verification_code: 1 }
+```
+
+---
+
+#### 16. audit_logs
+
+```javascript
+// Collection: audit_logs
+{
+  _id: ObjectId,
+  company_id: ObjectId,
+  
+  actor_id: ObjectId,                   // who did it
+  actor_email: "john@acme.com",         // denormalized for quick display
+  
+  action: "task.create",
+  
+  target_type: "task",
+  target_id: ObjectId,
+  target_name: "Build Auth API",        // denormalized
+  
+  details: {
+    before: null,                       // for updates
+    after: { title: "Build Auth API", points: 10 }
+  },
+  
+  ip_address: "192.168.1.100",
+  user_agent: "Mozilla/5.0...",
+  
+  created_at: ISODate
+}
+
+// Indexes
+{ company_id: 1, created_at: -1 }
+{ company_id: 1, actor_id: 1 }
+{ company_id: 1, action: 1 }
+
+// TTL index (auto-delete after 1 year)
+{ created_at: 1 }, { expireAfterSeconds: 31536000 }
+```
+
+---
+
+#### 17. email_logs
+
+```javascript
+// Collection: email_logs
+{
+  _id: ObjectId,
+  company_id: ObjectId,
+  
+  to_email: "alice@acme.com",
+  template: "task_assigned",
+  subject: "New Task Assigned: Build Auth API",
+  
+  // Template variables used
+  variables: {
+    intern_name: "Alice",
+    task_title: "Build Auth API",
+    deadline: "Jan 15, 2026"
+  },
+  
+  status: "sent",                       // pending, sent, failed
+  sent_at: ISODate,
+  error: null,
+  
+  created_at: ISODate
+}
+
+// Indexes
+{ company_id: 1, created_at: -1 }
+{ status: 1, created_at: 1 }
+```
+
+---
+
+### Collection Summary
+
+| Collection | Purpose | Key Features |
+|------------|---------|--------------|
+| `companies` | Tenants | Settings, attendance config embedded |
+| `roles` | Role definitions | Permissions & profile fields embedded |
+| `role_relationships` | Org structure | Which roles connect to which |
+| `users` | All users | Dynamic profile_data, GitHub info |
+| `user_connections` | User relationships | Who reports to whom |
+| `workspaces` | Project containers | Members embedded |
+| `tasks` | Work items | Assignees embedded |
+| `submissions` | Task submissions | Reviews embedded |
+| `attendance` | Clock in/out | Daily records |
+| `leave_requests` | Leave applications | Approval workflow |
+| `leave_balance` | Leave quotas | Per user per year |
+| `meetings` | Video calls | Participants embedded |
+| `messages` | DMs & comments | Flexible context |
+| `announcements` | Workspace posts | Comments embedded |
+| `certificates` | Completion certs | Verification code |
+| `audit_logs` | Activity tracking | TTL for auto-cleanup |
+| `email_logs` | Email history | Template tracking |
 
 ### Dynamic Roles Explanation
 
@@ -1300,17 +1690,17 @@ Temporary Password: xxxxxx
 │  ────────                      ───────                         │
 │  Next.js (React)               Node.js (Express/Fastify)       │
 │  TypeScript                    TypeScript                      │
-│  TailwindCSS                   Prisma ORM                      │
+│  TailwindCSS                   Mongoose ODM                    │
 │  Socket.io Client              Socket.io                       │
 │                                                                 │
 │  ─────────────────────────────────────────────────────────────│
 │                                                                 │
 │  PYTHON SERVICES               DATABASE                        │
 │  ───────────────               ────────                        │
-│  FastAPI                       PostgreSQL (Primary)            │
-│  AI Review Engine              Redis (Cache/Sessions)          │
-│  Email Service                 S3/CloudStorage (Files)         │
-│  Report Generation                                             │
+│  FastAPI                       MongoDB (Primary)               │
+│  AI Review Engine              S3/CloudStorage (Files)         │
+│  Email Service                                                 │
+│  Report Generation             (Redis deferred for later)      │
 │                                                                 │
 │  ─────────────────────────────────────────────────────────────│
 │                                                                 │
@@ -1331,7 +1721,19 @@ Temporary Password: xxxxxx
 | **Email Service** | Python | Email rendering and sending |
 | **Video Service** | Node.js | WebRTC signaling for meetings |
 
+### Database Choice Rationale
+
+| Requirement | Why MongoDB Fits |
+|-------------|------------------|
+| **Dynamic Roles** | Flexible schema for custom fields |
+| **Embedded Permissions** | Natural array storage |
+| **Varying Profile Fields** | No schema migrations needed |
+| **Audit Logs** | High write throughput |
+| **Real-time Features** | Change streams for notifications |
+| **Future Flexibility** | Easy to add new fields |
+
 ---
 
-*Document Version: 1.0*
+*Document Version: 1.1*
 *Last Updated: January 12, 2026*
+
