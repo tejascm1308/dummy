@@ -1,304 +1,716 @@
-# Intern Tracking System - Team Development Plan
+# Backend Team Development Plan
 
-> 4-person team, clean development stretch
-
----
-
-## Team Roles
-
-| Role | Focus Area | Skills Needed |
-|------|------------|---------------|
-| **Dev 1** | Backend Core | Node.js, MongoDB, APIs |
-| **Dev 2** | Frontend Core | Next.js, React, TailwindCSS |
-| **Dev 3** | Backend Features + Python | Node.js, Python, FastAPI |
-| **Dev 4** | Frontend Features + Integration | React, WebSocket, Testing |
+> 4 developers, pure backend development, sequential phases
 
 ---
 
-## Development Phases (4-Week Sprint)
+## Team Structure
 
-### Week 1: Foundation
+| Dev | Module | Focus Area |
+|-----|--------|------------|
+| **Dev 1** | Core & Auth | Companies, Roles, Users, Permissions, Authentication |
+| **Dev 2** | Tasks & Reviews | Tasks, Submissions, AI Review Integration |
+| **Dev 3** | Attendance & HR | Attendance, Leave, Certificates, Reports |
+| **Dev 4** | Communication | Messages, Meetings, WebSocket, Notifications |
+
+---
+
+## Phase 1: Foundation (Week 1-2)
+
+### All Developers Together
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│ WEEK 1: FOUNDATION                                              │
+│                    SHARED SETUP (Day 1-2)                       │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│ DEV 1 (Backend Core)           DEV 2 (Frontend Core)           │
-│ ───────────────────            ─────────────────────           │
-│ • Project setup                • Next.js project setup         │
-│ • MongoDB connection           • TailwindCSS config            │
-│ • Auth system (JWT)            • Component library setup       │
-│ • Company/Role/User models     • Auth pages (login, reset)     │
-│ • Basic CRUD APIs              • Layout components             │
-│                                • Routing structure              │
-│                                                                 │
-│ DEV 3 (Backend Features)       DEV 4 (Frontend Features)       │
-│ ────────────────────           ──────────────────────          │
-│ • Python service setup         • State management (Zustand)    │
-│ • Email service scaffold       • API client setup              │
-│ • Environment configs          • Socket.io client setup        │
-│ • Docker compose               • Toast notifications           │
-│ • CI/CD pipeline               • Loading states                │
-│                                                                 │
-│ DELIVERABLE: Auth working end-to-end                           │
+│  • Initialize Node.js project (Express/Fastify)                │
+│  • MongoDB connection setup                                     │
+│  • Project structure conventions                                │
+│  • Environment config (.env)                                    │
+│  • Error handling middleware                                    │
+│  • Request validation (Zod/Joi)                                 │
+│  • Logger setup (Winston/Pino)                                  │
+│  • Base response format                                         │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Week 2: Core Features
+### Shared Utilities (All contribute)
+
+```
+src/
+├── config/
+│   ├── database.ts         # MongoDB connection
+│   ├── env.ts              # Environment variables
+│   └── constants.ts        # App constants
+├── middleware/
+│   ├── errorHandler.ts     # Global error handling
+│   ├── auth.ts             # JWT middleware (Dev 1 owns)
+│   ├── validate.ts         # Request validation
+│   └── permission.ts       # Permission check (Dev 1 owns)
+├── utils/
+│   ├── response.ts         # Standard response format
+│   ├── logger.ts           # Logging utility
+│   ├── pagination.ts       # Pagination helper
+│   └── helpers.ts          # Common helpers
+└── types/
+    └── index.ts            # Shared TypeScript types
+```
+
+---
+
+## Phase 2: Core Development (Week 2-6)
+
+### Dev 1: Core & Auth Module
+
+**Owns:** Authentication, Authorization, Company, Roles, Users
+
+#### Week 2-3: Auth Foundation
+
+```
+src/modules/auth/
+├── controllers/
+│   ├── auth.controller.ts
+│   └── password.controller.ts
+├── services/
+│   ├── auth.service.ts
+│   ├── jwt.service.ts
+│   └── password.service.ts
+├── models/
+│   └── session.model.ts
+├── routes/
+│   └── auth.routes.ts
+└── validators/
+    └── auth.validator.ts
+```
+
+**Endpoints:**
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/login` | Login with email/password |
+| POST | `/api/auth/logout` | Logout, invalidate token |
+| POST | `/api/auth/refresh` | Refresh access token |
+| POST | `/api/auth/forgot-password` | Request password reset |
+| POST | `/api/auth/reset-password` | Reset with token |
+| PUT | `/api/auth/change-password` | Change own password |
+| GET | `/api/auth/me` | Get current user |
+
+#### Week 3-4: Company & Roles
+
+```
+src/modules/company/
+├── controllers/
+│   └── company.controller.ts
+├── services/
+│   └── company.service.ts
+├── models/
+│   └── company.model.ts     # With embedded settings
+├── routes/
+│   └── company.routes.ts
+└── validators/
+    └── company.validator.ts
+
+src/modules/role/
+├── controllers/
+│   └── role.controller.ts
+├── services/
+│   ├── role.service.ts
+│   └── permission.service.ts   # Permission checking logic
+├── models/
+│   ├── role.model.ts
+│   └── roleRelationship.model.ts
+├── routes/
+│   └── role.routes.ts
+└── validators/
+    └── role.validator.ts
+```
+
+**Endpoints:**
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/company` | Get company details |
+| PUT | `/api/company` | Update company settings |
+| PUT | `/api/company/attendance-config` | Update attendance config |
+| PUT | `/api/company/leave-types` | Update leave types |
+| GET | `/api/roles` | List all roles |
+| POST | `/api/roles` | Create role |
+| GET | `/api/roles/:id` | Get role details |
+| PUT | `/api/roles/:id` | Update role |
+| DELETE | `/api/roles/:id` | Delete role |
+| PUT | `/api/roles/:id/permissions` | Update permissions |
+| GET | `/api/roles/relationships` | Get role relationships |
+| POST | `/api/roles/relationships` | Create relationship |
+| DELETE | `/api/roles/relationships/:id` | Delete relationship |
+| GET | `/api/permissions` | List all available permissions |
+
+#### Week 4-5: Users
+
+```
+src/modules/user/
+├── controllers/
+│   └── user.controller.ts
+├── services/
+│   ├── user.service.ts
+│   └── userConnection.service.ts
+├── models/
+│   ├── user.model.ts
+│   └── userConnection.model.ts
+├── routes/
+│   └── user.routes.ts
+└── validators/
+    └── user.validator.ts
+```
+
+**Endpoints:**
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/users` | List users (with filters) |
+| POST | `/api/users` | Create user |
+| GET | `/api/users/:id` | Get user details |
+| PUT | `/api/users/:id` | Update user |
+| DELETE | `/api/users/:id` | Delete user |
+| PUT | `/api/users/:id/suspend` | Suspend user |
+| PUT | `/api/users/:id/activate` | Activate user |
+| POST | `/api/users/bulk-import` | Import from CSV |
+| GET | `/api/users/:id/connections` | Get user connections |
+| POST | `/api/users/connections` | Create connection |
+| DELETE | `/api/users/connections/:id` | Remove connection |
+| GET | `/api/users/:id/subtree` | Get all users in subtree |
+
+#### Week 5-6: Permission System
+
+```
+src/services/permission/
+├── permissionChecker.ts     # Core permission logic
+├── scopeResolver.ts         # Resolve own/direct/subtree/company
+└── permissionList.ts        # All permission definitions
+```
+
+**Key Functions:**
+```typescript
+// Check if user has permission on target
+hasPermission(userId, permission, targetId): boolean
+
+// Get all users in user's scope for a permission
+getUsersInScope(userId, permission): User[]
+
+// Check if user can perform action on target user
+canActOnUser(actorId, action, targetUserId): boolean
+```
+
+---
+
+### Dev 2: Tasks & Reviews Module
+
+**Owns:** Workspaces, Tasks, Submissions, Reviews, AI Integration
+
+**Dependencies:** Waits for Dev 1's user model (Week 3)
+
+#### Week 3-4: Workspaces & Tasks
+
+```
+src/modules/workspace/
+├── controllers/
+│   └── workspace.controller.ts
+├── services/
+│   └── workspace.service.ts
+├── models/
+│   └── workspace.model.ts
+├── routes/
+│   └── workspace.routes.ts
+└── validators/
+    └── workspace.validator.ts
+
+src/modules/task/
+├── controllers/
+│   └── task.controller.ts
+├── services/
+│   └── task.service.ts
+├── models/
+│   └── task.model.ts
+├── routes/
+│   └── task.routes.ts
+└── validators/
+    └── task.validator.ts
+```
+
+**Endpoints:**
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/workspaces` | List workspaces |
+| POST | `/api/workspaces` | Create workspace |
+| GET | `/api/workspaces/:id` | Get workspace details |
+| PUT | `/api/workspaces/:id` | Update workspace |
+| DELETE | `/api/workspaces/:id` | Delete workspace |
+| POST | `/api/workspaces/:id/members` | Add member |
+| DELETE | `/api/workspaces/:id/members/:userId` | Remove member |
+| GET | `/api/tasks` | List tasks (filtered) |
+| POST | `/api/tasks` | Create task |
+| GET | `/api/tasks/:id` | Get task details |
+| PUT | `/api/tasks/:id` | Update task |
+| DELETE | `/api/tasks/:id` | Delete task |
+| POST | `/api/tasks/:id/assignees` | Add assignee |
+| DELETE | `/api/tasks/:id/assignees/:userId` | Remove assignee |
+| PUT | `/api/tasks/:id/status` | Update task status |
+| GET | `/api/tasks/my` | Get my assigned tasks |
+| GET | `/api/tasks/team` | Get team's tasks |
+
+#### Week 4-5: Submissions
+
+```
+src/modules/submission/
+├── controllers/
+│   └── submission.controller.ts
+├── services/
+│   ├── submission.service.ts
+│   └── fileUpload.service.ts
+├── models/
+│   └── submission.model.ts
+├── routes/
+│   └── submission.routes.ts
+└── validators/
+    └── submission.validator.ts
+```
+
+**Endpoints:**
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/tasks/:id/submit` | Submit work |
+| GET | `/api/submissions` | List submissions |
+| GET | `/api/submissions/:id` | Get submission details |
+| PUT | `/api/submissions/:id/resubmit` | Resubmit work |
+| GET | `/api/submissions/pending-review` | Get pending reviews |
+
+#### Week 5-6: Reviews & AI Integration
+
+```
+src/modules/review/
+├── controllers/
+│   └── review.controller.ts
+├── services/
+│   ├── review.service.ts
+│   └── aiReview.service.ts    # Calls Python AI service
+├── routes/
+│   └── review.routes.ts
+└── validators/
+    └── review.validator.ts
+```
+
+**Endpoints:**
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/submissions/:id/review` | Submit human review |
+| POST | `/api/submissions/:id/trigger-ai` | Trigger AI review |
+| PUT | `/api/submissions/:id/approve` | Approve submission |
+| PUT | `/api/submissions/:id/request-revision` | Request revision |
+| GET | `/api/submissions/:id/reviews` | Get all reviews |
+
+**Python AI Service (separate microservice):**
+```
+POST /ai/review
+Body: { submission_data, task_info, rubric }
+Response: { score, remarks, detailed_review }
+```
+
+---
+
+### Dev 3: Attendance & HR Module
+
+**Owns:** Attendance, Leave, Certificates, Reports
+
+**Dependencies:** Waits for Dev 1's user model (Week 3)
+
+#### Week 3-4: Attendance
+
+```
+src/modules/attendance/
+├── controllers/
+│   └── attendance.controller.ts
+├── services/
+│   ├── attendance.service.ts
+│   ├── clockIn.service.ts
+│   └── ipGeoCheck.service.ts
+├── models/
+│   └── attendance.model.ts
+├── routes/
+│   └── attendance.routes.ts
+└── validators/
+    └── attendance.validator.ts
+```
+
+**Endpoints:**
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/attendance/clock-in` | Clock in |
+| POST | `/api/attendance/clock-out` | Clock out |
+| GET | `/api/attendance/today` | Get today's record |
+| GET | `/api/attendance/my` | Get my attendance |
+| GET | `/api/attendance/team` | Get team attendance |
+| GET | `/api/attendance/user/:id` | Get user's attendance |
+| PUT | `/api/attendance/:id` | Edit attendance (admin) |
+| GET | `/api/attendance/summary` | Monthly summary |
+| GET | `/api/attendance/export` | Export as CSV |
+
+#### Week 4-5: Leave Management
+
+```
+src/modules/leave/
+├── controllers/
+│   └── leave.controller.ts
+├── services/
+│   ├── leave.service.ts
+│   └── leaveBalance.service.ts
+├── models/
+│   ├── leaveRequest.model.ts
+│   └── leaveBalance.model.ts
+├── routes/
+│   └── leave.routes.ts
+└── validators/
+    └── leave.validator.ts
+```
+
+**Endpoints:**
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/leave/request` | Request leave |
+| GET | `/api/leave/my` | My leave requests |
+| GET | `/api/leave/pending` | Pending approvals |
+| PUT | `/api/leave/:id/approve` | Approve leave |
+| PUT | `/api/leave/:id/reject` | Reject leave |
+| GET | `/api/leave/balance` | Get my balance |
+| GET | `/api/leave/balance/:userId` | Get user's balance |
+| PUT | `/api/leave/balance/:userId` | Adjust balance |
+| DELETE | `/api/leave/:id` | Cancel request |
+
+#### Week 5-6: Certificates & Reports
+
+```
+src/modules/certificate/
+├── controllers/
+│   └── certificate.controller.ts
+├── services/
+│   ├── certificate.service.ts
+│   └── pdfGenerator.service.ts
+├── models/
+│   └── certificate.model.ts
+├── routes/
+│   └── certificate.routes.ts
+└── validators/
+    └── certificate.validator.ts
+
+src/modules/report/
+├── controllers/
+│   └── report.controller.ts
+├── services/
+│   ├── report.service.ts
+│   └── reportData.service.ts
+├── routes/
+│   └── report.routes.ts
+└── validators/
+    └── report.validator.ts
+```
+
+**Endpoints:**
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/certificates/generate/:userId` | Generate certificate |
+| GET | `/api/certificates` | List certificates |
+| GET | `/api/certificates/:id` | Get certificate |
+| GET | `/api/certificates/verify/:code` | Verify certificate |
+| GET | `/api/reports/dashboard` | Dashboard stats |
+| GET | `/api/reports/intern/:id` | Intern report |
+| GET | `/api/reports/team` | Team report |
+| POST | `/api/reports/generate` | Generate PDF report |
+| GET | `/api/reports/export` | Export data |
+
+---
+
+### Dev 4: Communication Module
+
+**Owns:** Messages, Announcements, Meetings, WebSocket, Notifications
+
+**Dependencies:** Waits for Dev 1's user model (Week 3)
+
+#### Week 3-4: Messages & Announcements
+
+```
+src/modules/message/
+├── controllers/
+│   └── message.controller.ts
+├── services/
+│   └── message.service.ts
+├── models/
+│   └── message.model.ts
+├── routes/
+│   └── message.routes.ts
+└── validators/
+    └── message.validator.ts
+
+src/modules/announcement/
+├── controllers/
+│   └── announcement.controller.ts
+├── services/
+│   └── announcement.service.ts
+├── models/
+│   └── announcement.model.ts
+├── routes/
+│   └── announcement.routes.ts
+└── validators/
+    └── announcement.validator.ts
+```
+
+**Endpoints:**
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/messages/conversations` | List conversations |
+| GET | `/api/messages/:userId` | Get DM with user |
+| POST | `/api/messages/:userId` | Send DM |
+| GET | `/api/tasks/:id/comments` | Get task comments |
+| POST | `/api/tasks/:id/comments` | Add comment |
+| DELETE | `/api/messages/:id` | Delete message |
+| GET | `/api/announcements` | List announcements |
+| POST | `/api/announcements` | Create announcement |
+| GET | `/api/announcements/:id` | Get announcement |
+| PUT | `/api/announcements/:id` | Update announcement |
+| DELETE | `/api/announcements/:id` | Delete announcement |
+| POST | `/api/announcements/:id/comments` | Add comment |
+
+#### Week 4-5: Meetings
+
+```
+src/modules/meeting/
+├── controllers/
+│   └── meeting.controller.ts
+├── services/
+│   ├── meeting.service.ts
+│   └── meetingCode.service.ts
+├── models/
+│   └── meeting.model.ts
+├── routes/
+│   └── meeting.routes.ts
+└── validators/
+    └── meeting.validator.ts
+```
+
+**Endpoints:**
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/meetings` | Schedule meeting |
+| GET | `/api/meetings` | List meetings |
+| GET | `/api/meetings/:id` | Get meeting details |
+| PUT | `/api/meetings/:id` | Update meeting |
+| DELETE | `/api/meetings/:id` | Cancel meeting |
+| POST | `/api/meetings/:id/invite` | Invite users |
+| PUT | `/api/meetings/:id/respond` | Accept/decline |
+| GET | `/api/meetings/upcoming` | Upcoming meetings |
+| POST | `/api/meetings/:id/join` | Get join info |
+
+#### Week 5-6: WebSocket & Notifications
+
+```
+src/modules/socket/
+├── socketServer.ts           # Socket.io setup
+├── handlers/
+│   ├── connection.handler.ts
+│   ├── message.handler.ts
+│   ├── notification.handler.ts
+│   └── presence.handler.ts
+└── middleware/
+    └── socketAuth.ts
+
+src/modules/notification/
+├── services/
+│   ├── notification.service.ts
+│   └── emailQueue.service.ts
+├── templates/
+│   └── ... (email templates)
+└── jobs/
+    └── emailWorker.ts
+```
+
+**Socket Events:**
+| Event | Direction | Description |
+|-------|-----------|-------------|
+| `message:new` | Server→Client | New message received |
+| `message:send` | Client→Server | Send message |
+| `notification:new` | Server→Client | New notification |
+| `meeting:started` | Server→Client | Meeting has started |
+| `user:online` | Server→Client | User came online |
+| `user:offline` | Server→Client | User went offline |
+| `task:updated` | Server→Client | Task status changed |
+
+---
+
+## Phase 3: Integration (Week 6-7)
+
+### All Developers Together
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│ WEEK 2: CORE FEATURES                                           │
+│                    INTEGRATION TASKS                            │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│ DEV 1 (Backend Core)           DEV 2 (Frontend Core)           │
-│ ───────────────────            ─────────────────────           │
-│ • Role Playground APIs         • Role Playground UI            │
-│ • Permission system            • Drag-drop role builder        │
-│ • User management APIs         • User management pages         │
-│ • Workspace APIs               • Workspace views               │
-│                                • Dashboard widgets              │
+│  1. CONNECT ALL MODULES                                         │
+│     • Ensure all cross-module calls work                       │
+│     • Test permission checks across modules                    │
+│     • Verify WebSocket integration                             │
 │                                                                 │
-│ DEV 3 (Backend Features)       DEV 4 (Frontend Features)       │
-│ ────────────────────           ──────────────────────          │
-│ • Task APIs                    • Task list/detail pages        │
-│ • Submission APIs              • Task creation form            │
-│ • File upload (S3)             • Submission UI                 │
-│ • Email templates              • File upload component         │
-│                                • Rich text editor               │
+│  2. EMAIL SYSTEM (Dev 4 leads)                                  │
+│     • Connect Python email service                             │
+│     • Test all 12 email templates                              │
+│     • Queue system for async emails                            │
 │                                                                 │
-│ DELIVERABLE: Roles, Users, Tasks working                       │
+│  3. AUDIT LOGGING (Dev 1 leads)                                 │
+│     • Add audit log calls to all mutations                     │
+│     • Test TTL cleanup                                         │
+│                                                                 │
+│  4. DASHBOARD DATA (Dev 3 leads)                                │
+│     • Widget data endpoints                                    │
+│     • Aggregation queries                                      │
+│                                                                 │
+│  5. ERROR HANDLING & VALIDATION                                 │
+│     • Consistent error responses                               │
+│     • Input validation on all endpoints                        │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Week 3: Advanced Features
+---
+
+## Phase 4: Testing & Polish (Week 7-8)
+
+### Testing Responsibilities
+
+| Dev | Test Focus |
+|-----|------------|
+| **Dev 1** | Auth flows, permission edge cases |
+| **Dev 2** | Task lifecycle, review flow, AI integration |
+| **Dev 3** | Attendance calculations, leave balance, reports |
+| **Dev 4** | Real-time messaging, WebSocket reliability |
+
+### Shared Testing Tasks
+
+- [ ] API documentation (Swagger/OpenAPI)
+- [ ] Unit tests for services
+- [ ] Integration tests for APIs
+- [ ] Load testing for critical endpoints
+- [ ] Security testing (auth bypass, injection)
+
+---
+
+## Dependency Graph
+
+```
+Week 2          Week 3          Week 4          Week 5          Week 6
+  │               │               │               │               │
+  ▼               ▼               ▼               ▼               ▼
+┌─────┐       ┌─────┐       ┌─────┐       ┌─────┐       ┌─────┐
+│ Dev1│───────│Auth │───────│Roles│───────│Users│───────│Perms│
+│Setup│       │     │       │     │       │     │       │     │
+└─────┘       └──┬──┘       └──┬──┘       └──┬──┘       └─────┘
+                 │             │             │
+                 │    Uses     │    Uses     │
+                 ▼             ▼             ▼
+              ┌─────┐       ┌─────┐       ┌─────┐
+        Dev2  │Work │───────│Tasks│───────│Revws│
+              │space│       │     │       │     │
+              └─────┘       └─────┘       └─────┘
+                 │
+                 │    Uses
+                 ▼
+              ┌─────┐       ┌─────┐       ┌─────┐
+        Dev3  │Atten│───────│Leave│───────│Certs│
+              │dance│       │     │       │Repts│
+              └─────┘       └─────┘       └─────┘
+                 │
+                 │    Uses
+                 ▼
+              ┌─────┐       ┌─────┐       ┌─────┐
+        Dev4  │Msgs │───────│Meets│───────│Socks│
+              │Anncs│       │     │       │Notif│
+              └─────┘       └─────┘       └─────┘
+```
+
+---
+
+## Daily Sync Checklist
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│ WEEK 3: ADVANCED FEATURES                                       │
+│                    DAILY STANDUP (15 min)                       │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│ DEV 1 (Backend Core)           DEV 2 (Frontend Core)           │
-│ ───────────────────            ─────────────────────           │
-│ • Attendance APIs              • Attendance UI                 │
-│ • Leave request APIs           • Clock in/out widget           │
-│ • Meeting APIs                 • Leave request forms           │
-│ • WebSocket events             • Meeting scheduler             │
-│ • Real-time notifications      • Notification center           │
+│  Each dev answers:                                              │
+│  1. What did I complete yesterday?                             │
+│  2. What am I working on today?                                │
+│  3. Am I blocked on anyone?                                    │
 │                                                                 │
-│ DEV 3 (Backend Features)       DEV 4 (Frontend Features)       │
-│ ────────────────────           ──────────────────────          │
-│ • AI Review service            • Review UI                     │
-│ • Review APIs                  • Score display                 │
-│ • Report generation            • Charts & analytics            │
-│ • Certificate generation       • Report views                  │
-│                                • Dashboard graphs               │
-│                                                                 │
-│ DELIVERABLE: Attendance, Reviews, Reports working              │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Week 4: Polish & Integration
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ WEEK 4: POLISH & INTEGRATION                                    │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│ DEV 1 (Backend Core)           DEV 2 (Frontend Core)           │
-│ ───────────────────            ─────────────────────           │
-│ • Audit logging                • UI polish                     │
-│ • Error handling               • Responsive design             │
-│ • Performance optimization     • Dark mode                     │
-│ • Security review              • Accessibility                 │
-│                                • Animation polish               │
-│                                                                 │
-│ DEV 3 (Backend Features)       DEV 4 (Frontend Features)       │
-│ ────────────────────           ──────────────────────          │
-│ • Email sending                • End-to-end testing            │
-│ • Scheduled jobs               • Bug fixes                     │
-│ • API documentation            • Integration testing           │
-│ • Deployment scripts           • Performance testing           │
-│                                                                 │
-│ DELIVERABLE: Production-ready MVP                               │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## Detailed Task Breakdown
-
-### DEV 1: Backend Core (Node.js + MongoDB)
-
-| Week | Tasks | Priority |
-|------|-------|----------|
-| **1** | Project setup, MongoDB, Auth (JWT), Company/Role/User models | High |
-| **2** | Role Playground API, Permission engine, User CRUD, Workspace API | High |
-| **3** | Attendance API, Leave API, Meeting API, WebSocket setup | Medium |
-| **4** | Audit logs, Security hardening, Performance tuning | Medium |
-
-**Key Files:**
-- `/backend/src/models/*` - All MongoDB schemas
-- `/backend/src/routes/*` - API routes
-- `/backend/src/middleware/*` - Auth, permissions
-- `/backend/src/services/permission.service.ts` - Permission engine
-
----
-
-### DEV 2: Frontend Core (Next.js + React)
-
-| Week | Tasks | Priority |
-|------|-------|----------|
-| **1** | Next.js setup, TailwindCSS, Component library, Auth pages | High |
-| **2** | Role Playground UI, User pages, Workspace views, Dashboard | High |
-| **3** | Attendance UI, Leave forms, Meeting UI, Notifications | Medium |
-| **4** | Responsive, Dark mode, Animations, Polish | Medium |
-
-**Key Files:**
-- `/frontend/src/components/*` - Reusable components
-- `/frontend/src/app/*` - Pages (App Router)
-- `/frontend/src/styles/*` - CSS/Tailwind config
-- `/frontend/src/hooks/*` - Custom React hooks
-
----
-
-### DEV 3: Backend Features + Python
-
-| Week | Tasks | Priority |
-|------|-------|----------|
-| **1** | Python FastAPI setup, Email service, Docker, CI/CD | High |
-| **2** | Task API, Submission API, File upload (S3), Email templates | High |
-| **3** | AI Review service, Report generation, Certificate PDF | Medium |
-| **4** | Email sending, Scheduled jobs, API docs | Medium |
-
-**Key Files:**
-- `/backend/src/routes/task.routes.ts` - Task APIs
-- `/python-services/ai_review/*` - AI review logic
-- `/python-services/email_service/*` - Email templates
-- `/python-services/report_service/*` - PDF generation
-
----
-
-### DEV 4: Frontend Features + Integration
-
-| Week | Tasks | Priority |
-|------|-------|----------|
-| **1** | State management, API client, Socket.io, Toast system | High |
-| **2** | Task pages, Submission UI, File upload, Rich editor | High |
-| **3** | Review UI, Charts, Analytics, Dashboard graphs | Medium |
-| **4** | E2E testing, Bug fixes, Integration tests | Medium |
-
-**Key Files:**
-- `/frontend/src/app/tasks/*` - Task pages
-- `/frontend/src/components/charts/*` - Analytics
-- `/frontend/src/lib/api.ts` - API client
-- `/frontend/src/lib/socket.ts` - WebSocket client
-
----
-
-## Folder Structure
-
-```
-intern-tracker/
-├── backend/                    # Node.js API (Dev 1, Dev 3)
-│   ├── src/
-│   │   ├── models/            # MongoDB schemas
-│   │   ├── routes/            # API endpoints
-│   │   ├── controllers/       # Business logic
-│   │   ├── services/          # Shared services
-│   │   ├── middleware/        # Auth, permissions
-│   │   └── utils/             # Helpers
-│   └── package.json
-│
-├── frontend/                   # Next.js (Dev 2, Dev 4)
-│   ├── src/
-│   │   ├── app/               # App Router pages
-│   │   ├── components/        # React components
-│   │   ├── hooks/             # Custom hooks
-│   │   ├── lib/               # API, socket, utils
-│   │   └── styles/            # CSS
-│   └── package.json
-│
-├── python-services/            # Python microservices (Dev 3)
-│   ├── ai_review/             # AI scoring
-│   ├── email_service/         # Email rendering
-│   └── report_service/        # PDF generation
-│
-├── docker-compose.yml          # Local development
-└── README.md
-```
-
----
-
-## Daily Workflow
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ DAILY STANDUP (15 min max)                                      │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│ 1. What did I complete yesterday?                              │
-│ 2. What am I working on today?                                 │
-│ 3. Any blockers?                                               │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────┐
-│ GIT WORKFLOW                                                    │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│ main ─────────────────────────────────────────────► (stable)   │
-│    │                                                            │
-│    └── develop ───────────────────────────────────► (staging)  │
-│           │                                                     │
-│           ├── feat/auth (Dev 1)                                │
-│           ├── feat/role-playground (Dev 2)                     │
-│           ├── feat/tasks (Dev 3)                               │
-│           └── feat/dashboard (Dev 4)                           │
-│                                                                 │
-│ MERGE: Feature → Develop → Main (after review)                 │
+│  Key questions to surface:                                      │
+│  • Does anyone need the User model changes?                    │
+│  • Does anyone need a new shared utility?                      │
+│  • Any API contract changes needed?                            │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## Communication Points
+## API Count Summary
 
-| Event | When | Who |
-|-------|------|-----|
-| **Standup** | Daily 10:00 AM | All |
-| **API Contract** | Before integration | Backend ↔ Frontend |
-| **Code Review** | Before merge | At least 1 reviewer |
-| **Demo** | End of each week | All + stakeholders |
-
----
-
-## Integration Checkpoints
-
-| Checkpoint | When | What to Verify |
-|------------|------|----------------|
-| **Auth Complete** | End of Week 1 | Login → JWT → Protected routes |
-| **Core CRUD** | Mid Week 2 | Roles, Users, Tasks E2E |
-| **Real-time** | Mid Week 3 | WebSocket notifications |
-| **Full MVP** | End of Week 4 | All features integrated |
-
----
-
-## Risk Areas & Mitigation
-
-| Risk | Owner | Mitigation |
-|------|-------|------------|
-| Permission engine complexity | Dev 1 | Define test cases early |
-| Role Playground drag-drop | Dev 2 | Use proven library (react-dnd) |
-| AI Review accuracy | Dev 3 | Start with rule-based, add AI later |
-| Real-time sync issues | Dev 4 | Test WebSocket edge cases |
+| Module | Dev | Endpoints |
+|--------|-----|-----------|
+| Auth | Dev 1 | 7 |
+| Company | Dev 1 | 5 |
+| Roles | Dev 1 | 12 |
+| Users | Dev 1 | 12 |
+| Workspaces | Dev 2 | 7 |
+| Tasks | Dev 2 | 12 |
+| Submissions | Dev 2 | 5 |
+| Reviews | Dev 2 | 5 |
+| Attendance | Dev 3 | 9 |
+| Leave | Dev 3 | 9 |
+| Certificates | Dev 3 | 4 |
+| Reports | Dev 3 | 5 |
+| Messages | Dev 4 | 6 |
+| Announcements | Dev 4 | 6 |
+| Meetings | Dev 4 | 9 |
+| **Total** | | **~113 endpoints** |
 
 ---
 
-*Created: January 12, 2026*
+## Git Workflow
+
+```
+main
+  │
+  └── develop
+        │
+        ├── feature/auth (Dev 1)
+        ├── feature/roles (Dev 1)
+        ├── feature/users (Dev 1)
+        │
+        ├── feature/workspaces (Dev 2)
+        ├── feature/tasks (Dev 2)
+        ├── feature/submissions (Dev 2)
+        │
+        ├── feature/attendance (Dev 3)
+        ├── feature/leave (Dev 3)
+        ├── feature/reports (Dev 3)
+        │
+        ├── feature/messages (Dev 4)
+        ├── feature/meetings (Dev 4)
+        └── feature/websocket (Dev 4)
+```
+
+**Rules:**
+1. Always branch from `develop`
+2. PR must be reviewed by 1 other dev
+3. Merge to `develop` daily (at least)
+4. No direct pushes to `main` or `develop`
+
+---
+
+*Document Version: 1.0*
+*Team Size: 4 developers*
+*Estimated Duration: 8 weeks*
