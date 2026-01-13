@@ -141,148 +141,372 @@ APPROVER ACTION
 
 ## 2. Permissions Library
 
-### Complete Granular Operations
+### Granular Permissions by Module
 
-Every operation has a **scope**: `own` | `direct` | `subtree` | `company`
+Every permission has a **scope**: `own` | `direct` | `subtree` | `company`
+
+- **own**: Only the user's own data
+- **direct**: Direct children (users connected directly)  
+- **subtree**: All descendants (recursive)
+- **company**: Everyone in the company
+
+---
+
+### COMPANY MANAGEMENT (9 permissions)
+
+| Permission | Description | Typical Roles |
+|------------|-------------|---------------|
+| `company.read` | View company info | Everyone |
+| `company.update` | Edit company name, logo | Super Admin |
+| `company.settings.read` | View company settings | Admin, Manager |
+| `company.settings.update` | Edit company settings | Super Admin |
+| `company.branding.update` | Edit colors, themes | Super Admin |
+| `company.task_categories.manage` | Add/edit task categories | Admin |
+| `company.leave_types.manage` | Add/edit leave types | Admin, HR |
+| `company.integrations.manage` | Manage third-party integrations | Super Admin |
+| `company.danger_zone` | Delete company, critical actions | Super Admin only |
+
+---
+
+### ROLE MANAGEMENT (12 permissions)
+
+| Permission | Description | Typical Roles |
+|------------|-------------|---------------|
+| `role.read` | View all roles | Admin, Manager |
+| `role.create` | Create new roles | Super Admin |
+| `role.update` | Edit role name, icon, color | Admin |
+| `role.delete` | Delete roles | Super Admin |
+| `role.permissions.read` | View role permissions | Admin |
+| `role.permissions.update` | Edit role permissions | Super Admin |
+| `role.profile_fields.manage` | Add/edit profile fields for role | Admin |
+| `role.relationships.read` | View which roles connect | Admin |
+| `role.relationships.create` | Create role relationships | Admin |
+| `role.relationships.delete` | Delete role relationships | Super Admin |
+| `role.playground.access` | Access visual role builder | Admin |
+| `role.duplicate` | Clone a role | Admin |
+
+---
+
+### USER MANAGEMENT (18 permissions)
+
+| Permission | Description | Typical Roles |
+|------------|-------------|---------------|
+| `user.create` | Create new users | Admin, Manager |
+| `user.read` | View user profiles | Manager, Mentor |
+| `user.update` | Edit user info | Admin, self only |
+| `user.delete` | Delete users | Super Admin |
+| `user.suspend` | Suspend user access | Admin, HR |
+| `user.activate` | Reactivate suspended user | Admin, HR |
+| `user.exit` | Mark internship complete | Admin, HR |
+| `user.role.assign` | Assign/change user role | Admin |
+| `user.bulk_import` | Import users from CSV | Admin |
+| `user.bulk_export` | Export users to CSV | Admin, HR |
+| `user.password.reset` | Reset other user's password | Admin |
+| `user.password.change` | Change own password | Everyone |
+| `user.profile.update` | Edit own profile data | Everyone |
+| `user.photo.update` | Update profile photo | Everyone |
+| `user.connections.read` | View user's connections (mentors, etc) | Manager |
+| `user.connections.create` | Connect user to mentor/reviewer | Admin |
+| `user.connections.delete` | Remove user connections | Admin |
+| `user.connections.transfer` | Move user to different mentor | Admin, Manager |
+
+---
+
+### WORKSPACE MANAGEMENT (12 permissions)
+
+| Permission | Description | Typical Roles |
+|------------|-------------|---------------|
+| `workspace.create` | Create new workspaces | Manager, Mentor |
+| `workspace.read` | View workspaces | Members |
+| `workspace.update` | Edit workspace name, description | Owner |
+| `workspace.delete` | Delete workspace | Admin, Owner |
+| `workspace.archive` | Archive workspace | Manager, Owner |
+| `workspace.restore` | Restore archived workspace | Manager |
+| `workspace.members.add` | Add members to workspace | Owner, Manager |
+| `workspace.members.remove` | Remove members | Owner, Manager |
+| `workspace.members.role` | Change member role (owner/member) | Owner |
+| `workspace.resources.upload` | Upload files/resources | Members |
+| `workspace.resources.delete` | Delete resources | Owner, uploader |
+| `workspace.stats.view` | View workspace analytics | Owner, Manager |
+
+---
+
+### TASK MANAGEMENT (16 permissions)
+
+| Permission | Description | Typical Roles |
+|------------|-------------|---------------|
+| `task.create` | Create new tasks | Mentor, Manager |
+| `task.read` | View tasks | Assigned users |
+| `task.update` | Edit task details | Creator, Manager |
+| `task.delete` | Delete tasks | Creator, Admin |
+| `task.assign` | Assign task to users | Mentor, Manager |
+| `task.unassign` | Remove assignment | Mentor, Manager |
+| `task.start` | Mark task as in_progress | Intern (own) |
+| `task.deadline.extend` | Extend task deadline | Mentor, Manager |
+| `task.deadline.set` | Set/change deadline | Creator |
+| `task.priority.set` | Set task priority | Creator, Manager |
+| `task.category.set` | Set task category | Creator |
+| `task.bulk_create` | Create multiple tasks at once | Mentor, Manager |
+| `task.bulk_assign` | Assign to multiple users | Mentor, Manager |
+| `task.duplicate` | Clone a task | Creator |
+| `task.archive` | Archive old tasks | Manager |
+| `task.attachments.manage` | Add/remove task attachments | Creator |
+
+---
+
+### SUBMISSION MANAGEMENT (14 permissions)
+
+| Permission | Description | Typical Roles |
+|------------|-------------|---------------|
+| `submission.create` | Submit work for task | Intern (own) |
+| `submission.read` | View submissions | Mentor, Reviewer |
+| `submission.resubmit` | Resubmit after revision request | Intern (own) |
+| `submission.files.upload` | Upload submission files | Intern (own) |
+| `submission.files.download` | Download submission files | Mentor, Reviewer |
+| `submission.github.link` | Link GitHub PR/commit | Intern (own) |
+| `submission.late.allow` | Allow late submission | Mentor |
+| `submission.history.view` | View all versions of submission | Reviewer |
+| `submission.review` | Review and score submission | Reviewer, Mentor |
+| `submission.score.set` | Set/edit score | Reviewer |
+| `submission.score.override_ai` | Override AI-generated score | Mentor |
+| `submission.remarks.add` | Add feedback remarks | Reviewer |
+| `submission.approve` | Approve submission | Reviewer |
+| `submission.revision.request` | Request resubmission | Reviewer |
+
+---
+
+### AI REVIEW (6 permissions)
+
+| Permission | Description | Typical Roles |
+|------------|-------------|---------------|
+| `ai_review.trigger` | Trigger AI review manually | Mentor |
+| `ai_review.read` | View AI review results | Reviewer, Intern (own) |
+| `ai_review.configure` | Configure AI review settings | Admin |
+| `ai_review.disable` | Disable AI for specific task | Mentor |
+| `ai_review.retry` | Retry failed AI review | Mentor |
+| `ai_review.feedback` | Provide feedback on AI accuracy | Reviewer |
+
+---
+
+### ATTENDANCE (14 permissions)
+
+| Permission | Description | Typical Roles |
+|------------|-------------|---------------|
+| `attendance.clock_in` | Clock in (self) | Intern, Staff |
+| `attendance.clock_out` | Clock out (self) | Intern, Staff |
+| `attendance.read` | View attendance records | Manager, HR |
+| `attendance.edit` | Edit attendance record | HR, Admin |
+| `attendance.delete` | Delete attendance record | Super Admin |
+| `attendance.export` | Export attendance data | HR, Admin |
+| `attendance.late.excuse` | Excuse late arrival | Manager |
+| `attendance.early_leave.excuse` | Excuse early departure | Manager |
+| `attendance.mark_wfh` | Mark as WFH for specific day | Manager, self |
+| `attendance.mark_absent` | Mark as absent | HR |
+| `attendance.regularize` | Request attendance regularization | Intern |
+| `attendance.regularize.approve` | Approve regularization | Manager |
+| `attendance.summary.view` | View attendance summary/stats | Manager, HR |
+| `attendance.config.manage` | Manage attendance settings | Admin |
+
+---
+
+### LEAVE MANAGEMENT (14 permissions)
+
+| Permission | Description | Typical Roles |
+|------------|-------------|---------------|
+| `leave.request` | Request leave (self) | Everyone |
+| `leave.request.cancel` | Cancel own leave request | Requester |
+| `leave.read` | View leave requests | Manager, HR |
+| `leave.approve` | Approve leave requests | Manager, HR |
+| `leave.reject` | Reject leave requests | Manager, HR |
+| `leave.balance.read` | View leave balance | Self, Manager |
+| `leave.balance.adjust` | Manually adjust leave balance | HR |
+| `leave.balance.reset` | Reset leave balance (yearly) | Admin |
+| `leave.types.manage` | Add/edit leave types | Admin, HR |
+| `leave.policy.configure` | Configure leave policies | Admin |
+| `leave.holidays.manage` | Manage company holidays | Admin, HR |
+| `leave.history.view` | View leave history | HR |
+| `leave.export` | Export leave data | HR |
+| `leave.calendar.view` | View team leave calendar | Manager |
+
+---
+
+### MEETING MANAGEMENT (12 permissions)
+
+| Permission | Description | Typical Roles |
+|------------|-------------|---------------|
+| `meeting.schedule` | Schedule new meetings | Mentor, Manager |
+| `meeting.read` | View meeting details | Participants |
+| `meeting.update` | Edit meeting details | Host |
+| `meeting.cancel` | Cancel meeting | Host, Admin |
+| `meeting.invite` | Invite participants | Host |
+| `meeting.uninvite` | Remove participants | Host |
+| `meeting.join` | Join scheduled meeting | Participants |
+| `meeting.start` | Start the meeting | Host |
+| `meeting.end` | End the meeting | Host |
+| `meeting.record` | Record the meeting | Host |
+| `meeting.recording.view` | View meeting recordings | Participants, Admin |
+| `meeting.history.view` | View past meeting history | Manager |
+
+---
+
+### COMMUNICATION (16 permissions)
+
+| Permission | Description | Typical Roles |
+|------------|-------------|---------------|
+| `message.dm.send` | Send direct messages | Everyone |
+| `message.dm.read` | Read DM conversations | Participants |
+| `message.dm.delete` | Delete own messages | Sender |
+| `message.dm.delete_any` | Delete any message | Admin |
+| `comment.task.create` | Comment on tasks | Assigned users |
+| `comment.task.read` | Read task comments | Viewers |
+| `comment.task.edit` | Edit own comments | Commenter |
+| `comment.task.delete` | Delete own comments | Commenter |
+| `comment.task.delete_any` | Delete any comment | Admin |
+| `announcement.create` | Create workspace announcements | Manager, Mentor |
+| `announcement.read` | View announcements | Members |
+| `announcement.update` | Edit announcement | Creator |
+| `announcement.delete` | Delete announcement | Creator, Admin |
+| `announcement.pin` | Pin announcement to top | Creator, Admin |
+| `announcement.comment` | Comment on announcements | Members |
+| `notification.preferences` | Manage notification settings | self |
+
+---
+
+### REPORT GENERATION (10 permissions)
+
+| Permission | Description | Typical Roles |
+|------------|-------------|---------------|
+| `report.own.view` | View own reports | Everyone |
+| `report.own.download` | Download own report | Everyone |
+| `report.generate` | Generate reports for others | Manager, HR |
+| `report.team.view` | View team reports | Manager |
+| `report.company.view` | View company-wide reports | Admin, HR |
+| `report.export.pdf` | Export report as PDF | Generator |
+| `report.export.csv` | Export data as CSV | Generator |
+| `report.schedule` | Schedule automated reports | Admin |
+| `report.template.manage` | Create/edit report templates | Admin |
+| `report.analytics.view` | View analytics dashboards | Manager, Admin |
+
+---
+
+### CERTIFICATE MANAGEMENT (8 permissions)
+
+| Permission | Description | Typical Roles |
+|------------|-------------|---------------|
+| `certificate.generate` | Generate intern certificates | HR, Admin |
+| `certificate.view` | View certificates | Intern (own), Admin |
+| `certificate.download` | Download certificate PDF | Holder |
+| `certificate.revoke` | Revoke issued certificate | Admin |
+| `certificate.template.view` | View certificate templates | HR |
+| `certificate.template.create` | Create new templates | Admin |
+| `certificate.template.edit` | Edit templates | Admin |
+| `certificate.verify` | Verify certificate authenticity | Public (no login) |
+
+---
+
+### DASHBOARD & WIDGETS (8 permissions)
+
+| Permission | Description | Typical Roles |
+|------------|-------------|---------------|
+| `dashboard.view` | View dashboard | Everyone |
+| `dashboard.customize` | Customize widget layout | self |
+| `dashboard.widgets.team` | See team widgets | Manager, Mentor |
+| `dashboard.widgets.company` | See company-wide widgets | Admin |
+| `dashboard.quick_actions.use` | Use quick action buttons | Based on action |
+| `dashboard.stats.own` | View own stats | Everyone |
+| `dashboard.stats.team` | View team stats | Manager |
+| `dashboard.stats.company` | View company stats | Admin |
+
+---
+
+### FILE MANAGEMENT (8 permissions)
+
+| Permission | Description | Typical Roles |
+|------------|-------------|---------------|
+| `file.upload` | Upload files | Everyone |
+| `file.download` | Download files | Based on context |
+| `file.delete` | Delete own files | Uploader |
+| `file.delete_any` | Delete any file | Admin |
+| `file.storage.view` | View storage usage | Admin |
+| `file.storage.manage` | Manage storage limits | Super Admin |
+| `file.types.configure` | Configure allowed file types | Admin |
+| `file.size.configure` | Set max file size | Admin |
+
+---
+
+### GITHUB INTEGRATION (6 permissions)
+
+| Permission | Description | Typical Roles |
+|------------|-------------|---------------|
+| `github.connect` | Connect GitHub account | self |
+| `github.disconnect` | Disconnect GitHub | self, Admin |
+| `github.stats.view` | View commit/PR stats | Mentor (subtree) |
+| `github.repos.link` | Link repos to tasks | Intern (own) |
+| `github.webhook.configure` | Configure webhooks | Admin |
+| `github.org.connect` | Connect org-level access | Super Admin |
+
+---
+
+### AUDIT & SECURITY (8 permissions)
+
+| Permission | Description | Typical Roles |
+|------------|-------------|---------------|
+| `audit.log.view` | View audit logs | Admin |
+| `audit.log.export` | Export audit logs | Admin |
+| `audit.log.search` | Search audit logs | Admin |
+| `audit.log.filter` | Filter by user/action | Admin |
+| `security.sessions.view` | View active sessions | Admin, self |
+| `security.sessions.revoke` | Revoke sessions | Admin, self |
+| `security.2fa.configure` | Manage 2FA settings | Admin |
+| `security.password_policy` | Set password requirements | Super Admin |
+
+---
+
+### SUMMARY: Total Permissions
+
+| Category | Count |
+|----------|-------|
+| Company Management | 9 |
+| Role Management | 12 |
+| User Management | 18 |
+| Workspace Management | 12 |
+| Task Management | 16 |
+| Submission Management | 14 |
+| AI Review | 6 |
+| Attendance | 14 |
+| Leave Management | 14 |
+| Meeting Management | 12 |
+| Communication | 16 |
+| Report Generation | 10 |
+| Certificate Management | 8 |
+| Dashboard & Widgets | 8 |
+| File Management | 8 |
+| GitHub Integration | 6 |
+| Audit & Security | 8 |
+| **TOTAL** | **171 permissions** |
+
+---
+
+### How Permissions + Relationships Work Together
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    PERMISSIONS LIBRARY                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│ ══════════════════════════════════════════════════════════════ │
-│ USERS                                                           │
-│ ══════════════════════════════════════════════════════════════ │
-│ user.create              Create new users                       │
-│ user.read                View user profiles                     │
-│ user.update              Edit user details                      │
-│ user.delete              Remove users                           │
-│ user.suspend             Suspend/activate users                 │
-│ user.bulk_import         Import users via CSV                   │
-│ user.reset_password      Reset user passwords                   │
-│ user.assign_role         Assign/change user roles               │
-│                                                                 │
-│ ══════════════════════════════════════════════════════════════ │
-│ TASKS                                                           │
-│ ══════════════════════════════════════════════════════════════ │
-│ task.create              Create new tasks                       │
-│ task.read                View tasks                             │
-│ task.update              Edit task details                      │
-│ task.delete              Delete tasks                           │
-│ task.assign              Assign tasks to users                  │
-│ task.extend_deadline     Extend task deadlines                  │
-│ task.set_priority        Set task priority                      │
-│ task.bulk_create         Bulk create tasks                      │
-│                                                                 │
-│ ══════════════════════════════════════════════════════════════ │
-│ SUBMISSIONS                                                     │
-│ ══════════════════════════════════════════════════════════════ │
-│ submission.create        Submit work (for interns)              │
-│ submission.read          View submissions                       │
-│ submission.resubmit      Resubmit work                          │
-│ submission.trigger_ai    Trigger AI review manually             │
-│ submission.review        Review submissions                     │
-│ submission.score         Set/edit scores                        │
-│ submission.override_ai   Override AI score                      │
-│ submission.add_remarks   Add feedback remarks                   │
-│ submission.request_resubmit  Request resubmission               │
-│                                                                 │
-│ ══════════════════════════════════════════════════════════════ │
-│ ATTENDANCE                                                      │
-│ ══════════════════════════════════════════════════════════════ │
-│ attendance.clock         Clock in/out (for self)                │
-│ attendance.read          View attendance records                │
-│ attendance.edit          Edit attendance records                │
-│ attendance.export        Export attendance data                 │
-│ attendance.configure     Configure attendance settings          │
-│                                                                 │
-│ ══════════════════════════════════════════════════════════════ │
-│ LEAVE                                                           │
-│ ══════════════════════════════════════════════════════════════ │
-│ leave.request            Request leave (for self)               │
-│ leave.read               View leave requests                    │
-│ leave.approve            Approve leave requests                 │
-│ leave.reject             Reject leave requests                  │
-│ leave.configure          Configure leave policies               │
-│                                                                 │
-│ ══════════════════════════════════════════════════════════════ │
-│ WORKSPACES                                                      │
-│ ══════════════════════════════════════════════════════════════ │
-│ workspace.create         Create workspaces                      │
-│ workspace.read           View workspaces                        │
-│ workspace.update         Edit workspace details                 │
-│ workspace.delete         Delete workspaces                      │
-│ workspace.archive        Archive workspaces                     │
-│ workspace.add_member     Add members to workspace               │
-│ workspace.remove_member  Remove members                         │
-│ workspace.post           Post announcements/resources           │
-│                                                                 │
-│ ══════════════════════════════════════════════════════════════ │
-│ COMMUNICATION                                                   │
-│ ══════════════════════════════════════════════════════════════ │
-│ message.send_dm          Send direct messages                   │
-│ message.read_dm          Read direct messages                   │
-│ discussion.create        Start discussions                      │
-│ discussion.read          View discussions                       │
-│ discussion.moderate      Delete/edit any message                │
-│ comment.create           Comment on tasks                       │
-│ comment.read             View comments                          │
-│ announcement.create      Create announcements                   │
-│                                                                 │
-│ ══════════════════════════════════════════════════════════════ │
-│ MEETINGS                                                        │
-│ ══════════════════════════════════════════════════════════════ │
-│ meeting.schedule         Schedule meetings                      │
-│ meeting.join             Join meetings                          │
-│ meeting.invite           Invite participants                    │
-│ meeting.record           Record meetings                        │
-│ meeting.manage_lobby     Admit/reject from lobby                │
-│ meeting.view_history     View meeting history                   │
-│ meeting.delete           Cancel/delete meetings                 │
-│                                                                 │
-│ ══════════════════════════════════════════════════════════════ │
-│ REPORTS                                                         │
-│ ══════════════════════════════════════════════════════════════ │
-│ report.view_own          View own reports                       │
-│ report.view              View reports                           │
-│ report.generate          Generate reports                       │
-│ report.export_pdf        Export as PDF                          │
-│ report.export_csv        Export as CSV                          │
-│ report.schedule          Schedule automated reports             │
-│                                                                 │
-│ ══════════════════════════════════════════════════════════════ │
-│ CERTIFICATES                                                    │
-│ ══════════════════════════════════════════════════════════════ │
-│ certificate.generate     Generate certificates                  │
-│ certificate.view         View certificates                      │
-│ certificate.design       Design certificate templates           │
-│ certificate.verify       Verify certificate authenticity        │
-│                                                                 │
-│ ══════════════════════════════════════════════════════════════ │
-│ CONFIGURATION                                                   │
-│ ══════════════════════════════════════════════════════════════ │
-│ config.profile           Edit own profile                       │
-│ config.company           Edit company settings                  │
-│ config.roles             Manage role definitions                │
-│ config.permissions       Manage permissions                     │
-│ config.playground        Access role playground                 │
-│ config.branding          Edit company branding                  │
-│ config.integrations      Manage integrations                    │
-│                                                                 │
-│ ══════════════════════════════════════════════════════════════ │
-│ AUDIT                                                           │
-│ ══════════════════════════════════════════════════════════════ │
-│ audit.view               View audit logs                        │
-│ audit.export             Export audit logs                      │
-│                                                                 │
-│ ══════════════════════════════════════════════════════════════ │
-│ GITHUB                                                          │
-│ ══════════════════════════════════════════════════════════════ │
-│ github.connect           Connect own GitHub                     │
-│ github.view              View GitHub stats                      │
-│ github.disconnect        Disconnect GitHub                      │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+EXAMPLE: Technical Mentor reviewing submissions
+
+Permission: submission.review (scope: subtree)
+
+Step 1: Check if user has permission
+        → Yes, Technical Mentor role has submission.review
+
+Step 2: Determine scope
+        → subtree (all descendants)
+
+Step 3: Query graph for descendants
+        → user_connections where from_user = mentor
+        → Returns: [Alice, Bob] (interns under this mentor)
+
+Step 4: Action allowed
+        → Can review submissions from Alice and Bob
+        → Cannot review submissions from Charlie (different mentor)
 ```
 
 ### Permission Assignment Example
