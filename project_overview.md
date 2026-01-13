@@ -101,7 +101,437 @@ The Company module stores **how each company wants to track their interns.**
 
 ---
 
-## Module 2: Role System
+## The Graph Structure: How Relationships Work
+
+### Why a Graph?
+
+Traditional systems use **fixed hierarchies** (CEO → Manager → Employee). Our system uses a **flexible graph** because:
+
+- One mentor can mentor multiple interns
+- One intern can have multiple mentors (technical + project)
+- A QA reviewer can review anyone's work (cross-team)
+- Teams can overlap
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              FIXED HIERARCHY vs GRAPH STRUCTURE                 │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  FIXED HIERARCHY (Traditional):                                 │
+│                                                                 │
+│        Manager                                                  │
+│           │                                                     │
+│     ┌─────┼─────┐                                               │
+│     ▼     ▼     ▼                                               │
+│   TeamA TeamB TeamC                                             │
+│                                                                 │
+│   Problem: What if someone works on Team A AND Team B?          │
+│   Problem: What if QA reviews all teams?                        │
+│                                                                 │
+│  ─────────────────────────────────────────────────────────────  │
+│                                                                 │
+│  GRAPH STRUCTURE (Our System):                                  │
+│                                                                 │
+│    Manager ─── oversees ──→ All Teams                           │
+│       │                                                         │
+│    manages                                                      │
+│       ▼                                                         │
+│    Mentor A ── mentors ──→ Intern 1, Intern 2                  │
+│       │                                                         │
+│       └──── reviews ──→ Intern 3 (from another team)           │
+│                                                                 │
+│    QA Reviewer ── reviews ──→ ALL interns (cross-team)         │
+│                                                                 │
+│   ✓ Flexible connections                                       │
+│   ✓ Multiple relationship types                                │
+│   ✓ No rigid hierarchy                                         │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### How the Graph is Built
+
+**Step 1: Create Roles (Templates)**
+
+Roles are templates. Creating a role does NOT create users.
+
+```
+Admin creates these roles:
+┌────────────────────────────────────────────────────────────────┐
+│ ROLE: "Technical Mentor"                                       │
+│ Category: staff                                                │
+│ Permissions: task.create, submission.review, etc.              │
+│ Profile Fields: department, experience_years                   │
+└────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────┐
+│ ROLE: "QA Reviewer"                                            │
+│ Category: staff                                                │
+│ Permissions: submission.review (but NOT task.create)           │
+│ Profile Fields: qa_specialty                                   │
+└────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────┐
+│ ROLE: "Intern"                                                 │
+│ Category: intern                                               │
+│ Permissions: task.read (own), attendance.clock                 │
+│ Profile Fields: college, degree, start_date, end_date          │
+└────────────────────────────────────────────────────────────────┘
+```
+
+**Step 2: Define Role Relationships (Edges)**
+
+Define what connections are POSSIBLE between roles.
+
+```
+role_relationships collection:
+┌────────────────────────────────────────────────────────────────┐
+│ Technical Mentor ── mentors ──→ Intern                         │
+│ Technical Mentor ── reviews ──→ Intern                         │
+│ QA Reviewer ── reviews ──→ Intern                              │
+│ Manager ── manages ──→ Technical Mentor                        │
+│ Manager ── oversees ──→ Intern                                 │
+└────────────────────────────────────────────────────────────────┘
+
+This says:
+• Mentors CAN mentor interns
+• Mentors CAN review interns
+• QA CAN review interns
+• Managers CAN manage mentors
+
+It does NOT yet connect actual people!
+```
+
+**Step 3: Create Users (Actual People)**
+
+Now create real users and assign them to roles.
+
+```
+users collection:
+┌────────────────────────────────────────────────────────────────┐
+│ John Smith      → Role: Technical Mentor                       │
+│ Sarah Lee       → Role: QA Reviewer                            │
+│ Mike Brown      → Role: Manager                                │
+│ Alice Johnson   → Role: Intern                                 │
+│ Bob Williams    → Role: Intern                                 │
+│ Charlie Davis   → Role: Intern                                 │
+└────────────────────────────────────────────────────────────────┘
+```
+
+**Step 4: Connect Users (The Graph Edges)**
+
+This is where the graph is actually created!
+
+```
+user_connections collection:
+┌────────────────────────────────────────────────────────────────┐
+│ John ── mentors ──→ Alice        (John is Alice's mentor)      │
+│ John ── mentors ──→ Bob          (John is Bob's mentor)        │
+│ Sarah ── reviews ──→ Alice       (Sarah reviews Alice's work)  │
+│ Sarah ── reviews ──→ Bob         (Sarah reviews Bob's work)    │
+│ Sarah ── reviews ──→ Charlie     (Sarah reviews Charlie's work)│
+│ Mike ── manages ──→ John         (Mike manages John)           │
+└────────────────────────────────────────────────────────────────┘
+
+THE GRAPH:
+                  Mike (Manager)
+                    │ manages
+                    ▼
+                  John (Mentor)────────┐
+                    │ mentors          │ mentors
+                    ▼                  ▼
+                  Alice              Bob
+                    ▲                  ▲
+    ┌───────────────┴──────────────────┘
+    │ reviews       │ reviews          │ reviews
+  Sarah (QA) ───────┴──────────────────┴──────→ Charlie
+```
+
+---
+
+## Teams in the Graph
+
+### How to Create Teams
+
+Teams are just **groupings of user connections**. No separate "team" entity needed!
+
+**Example: Create "Backend Team"**
+
+```
+Backend Team = Users connected to Mentor John
+
+user_connections:
+• John ── mentors ──→ Alice
+• John ── mentors ──→ Bob
+
+Query: "Get all users where from_user = John AND type = mentors"
+Result: [Alice, Bob] ← This is the "Backend Team"
+```
+
+**Example: Create "QA Cross-Team"**
+
+```
+QA Reviews = Users connected to Reviewer Sarah
+
+user_connections:
+• Sarah ── reviews ──→ Alice
+• Sarah ── reviews ──→ Bob
+• Sarah ── reviews ──→ Charlie
+
+Query: "Get all users where from_user = Sarah AND type = reviews"
+Result: [Alice, Bob, Charlie] ← This is "who Sarah reviews"
+```
+
+### One Intern, Multiple Teams
+
+The graph allows an intern to belong to multiple "teams":
+
+```
+Alice is:
+• Mentored by John (Backend Team)
+• Reviewed by Sarah (QA)
+• Also mentored by David for design tasks (Design Team)
+
+user_connections:
+• John ── mentors ──→ Alice
+• Sarah ── reviews ──→ Alice
+• David ── mentors ──→ Alice (design)
+```
+
+---
+
+## Easy Configuration: How It Works
+
+### Everything is Editable
+
+| What | How to Edit | What Changes |
+|------|-------------|--------------|
+| **Roles** | Update `roles` collection | Permissions, profile fields |
+| **Role Relationships** | Update `role_relationships` | Who CAN connect to whom |
+| **Users** | Update `users` collection | Profile, role assignment |
+| **User Connections** | Update `user_connections` | Who IS connected to whom |
+
+### Creating a New User (Simple Flow)
+
+```
+ADMIN UI                              BACKEND
+  │                                     │
+  │ 1. Fill form:                       │
+  │    Name: Alice                      │
+  │    Email: alice@company.com         │
+  │    Role: [Dropdown: Intern] ◄─────── Fetches available roles
+  │                                     │
+  │ 2. System shows:                    │
+  │    "Connect Alice to:"              │
+  │    [Dropdown: Select Mentor] ◄────── Shows users who CAN mentor
+  │    [Dropdown: Select Reviewer] ◄─── Shows users who CAN review
+  │                                     │
+  │ 3. Admin selects:                   │
+  │    Mentor: John                     │
+  │    Reviewer: Sarah                  │
+  │                                     │
+  ├──── Submit ─────────────────────────►
+  │                                     │
+  │                                     │ 4. Create user
+  │                                     │ 5. Create connections:
+  │                                     │    • John ── mentors ──→ Alice
+  │                                     │    • Sarah ── reviews ──→ Alice
+  │                                     │
+  │   ◄─── Done! ───────────────────────┤
+```
+
+### Changing Connections Later
+
+Admin can easily modify connections without affecting anything else:
+
+```
+"Move Alice from John's team to David's team"
+
+BEFORE:
+user_connections:
+• John ── mentors ──→ Alice
+
+ACTION:
+1. Deactivate: John ── mentors ──→ Alice (set is_active: false)
+2. Create: David ── mentors ──→ Alice
+
+AFTER:
+user_connections:
+• John ── mentors ──→ Alice (is_active: false, deactivated_at: now)
+• David ── mentors ──→ Alice (is_active: true)
+
+✓ Alice's historical data with John is preserved
+✓ Alice now appears in David's team
+✓ John no longer sees Alice in his current team
+```
+
+### Adding a New Role (Easy)
+
+```
+Admin wants to add "Design Mentor" role:
+
+1. Create role:
+   {
+     name: "design_mentor",
+     display_name: "Design Mentor",
+     category: "staff",
+     permissions: [
+       { permission: "task.create", scope: "subtree" },
+       { permission: "submission.review", scope: "subtree" }
+     ],
+     profile_fields: [
+       { name: "design_specialty", type: "dropdown", 
+         options: ["UI", "UX", "Graphic"] }
+     ]
+   }
+
+2. Create role relationship:
+   {
+     from_role: "design_mentor",
+     to_role: "intern",
+     relationship_type: "mentors"
+   }
+
+3. Done! Now you can:
+   • Assign users to "Design Mentor" role
+   • Connect Design Mentors to interns
+```
+
+### Editing Permissions (Easy)
+
+```
+"Technical Mentor should also be able to approve leaves"
+
+BEFORE:
+role.permissions = [
+  { permission: "task.create", scope: "subtree" },
+  { permission: "submission.review", scope: "subtree" }
+]
+
+ACTION:
+Push new permission:
+{ permission: "leave.approve", scope: "direct" }
+
+AFTER:
+role.permissions = [
+  { permission: "task.create", scope: "subtree" },
+  { permission: "submission.review", scope: "subtree" },
+  { permission: "leave.approve", scope: "direct" }  ← NEW
+]
+
+✓ All Technical Mentors now get this permission instantly
+✓ No need to update individual users
+```
+
+---
+
+## Database Collections for Graph
+
+### roles (Templates)
+
+```javascript
+{
+  _id: ObjectId,
+  company_id: ObjectId,
+  name: "technical_mentor",
+  display_name: "Technical Mentor",
+  permissions: [...],        // What this role can do
+  profile_fields: [...],     // What info to collect
+  is_deletable: true         // Can admin delete this role?
+}
+```
+
+### role_relationships (Possible Edges)
+
+```javascript
+{
+  _id: ObjectId,
+  company_id: ObjectId,
+  from_role_id: ObjectId,    // e.g., Technical Mentor
+  to_role_id: ObjectId,      // e.g., Intern
+  relationship_type: "mentors"  // mentors, reviews, manages, etc.
+}
+```
+
+### users (Nodes)
+
+```javascript
+{
+  _id: ObjectId,
+  company_id: ObjectId,
+  role_id: ObjectId,         // Which role template
+  name: "John Smith",
+  email: "john@company.com",
+  profile_data: {...},       // Based on role's profile_fields
+  status: "active"
+}
+```
+
+### user_connections (Actual Edges)
+
+```javascript
+{
+  _id: ObjectId,
+  company_id: ObjectId,
+  from_user_id: ObjectId,    // e.g., John (Mentor)
+  to_user_id: ObjectId,      // e.g., Alice (Intern)
+  relationship_type: "mentors",
+  is_active: true,
+  created_at: ISODate,
+  deactivated_at: null       // Set when connection is removed
+}
+```
+
+---
+
+## Querying the Graph
+
+### "Who does John mentor?"
+
+```javascript
+db.user_connections.find({
+  from_user_id: john_id,
+  relationship_type: "mentors",
+  is_active: true
+})
+// Returns: [Alice, Bob]
+```
+
+### "Who mentors Alice?"
+
+```javascript
+db.user_connections.find({
+  to_user_id: alice_id,
+  relationship_type: "mentors",
+  is_active: true
+})
+// Returns: [John] (or multiple if she has multiple mentors)
+```
+
+### "Get John's entire subtree" (for tracking)
+
+```javascript
+// Recursive query to get all descendants
+function getSubtree(userId) {
+  const direct = db.user_connections.find({
+    from_user_id: userId,
+    is_active: true
+  });
+  
+  let result = direct;
+  for (const conn of direct) {
+    result = result.concat(getSubtree(conn.to_user_id));
+  }
+  return result;
+}
+
+// John's subtree = Alice, Bob (his mentees)
+// Mike's subtree = John, Alice, Bob (John + John's mentees)
+```
+
+---
+
+## Module 2: Company
 
 ### Why It Exists in a Tracking System
 
