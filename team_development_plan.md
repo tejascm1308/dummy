@@ -41,21 +41,21 @@
 ```
 src/
 ├── config/
-│   ├── database.ts         # MongoDB connection
-│   ├── env.ts              # Environment variables
-│   └── constants.ts        # App constants
+│   ├── database.js         # MongoDB connection
+│   ├── env.js              # Environment variables
+│   └── constants.js        # App constants
 ├── middleware/
-│   ├── errorHandler.ts     # Global error handling
-│   ├── auth.ts             # JWT middleware (Dev 1 owns)
-│   ├── validate.ts         # Request validation
-│   └── permission.ts       # Permission check (Dev 1 owns)
+│   ├── errorHandler.js     # Global error handling
+│   ├── auth.js             # JWT middleware (Dev 1 owns)
+│   ├── validate.js         # Request validation
+│   └── permission.js       # Permission check (Dev 1 owns)
 ├── utils/
-│   ├── response.ts         # Standard response format
-│   ├── logger.ts           # Logging utility
-│   ├── pagination.ts       # Pagination helper
-│   └── helpers.ts          # Common helpers
-└── types/
-    └── index.ts            # Shared TypeScript types
+│   ├── response.js         # Standard response format
+│   ├── logger.js           # Logging utility
+│   ├── pagination.js       # Pagination helper
+│   └── helpers.js          # Common helpers
+└── services/
+    └── shared.js           # Shared service utilities
 ```
 
 ---
@@ -71,18 +71,18 @@ src/
 ```
 src/modules/auth/
 ├── controllers/
-│   ├── auth.controller.ts
-│   └── password.controller.ts
+│   ├── auth.controller.js
+│   └── password.controller.js
 ├── services/
-│   ├── auth.service.ts
-│   ├── jwt.service.ts
-│   └── password.service.ts
+│   ├── auth.service.js
+│   ├── jwt.service.js
+│   └── password.service.js
 ├── models/
-│   └── session.model.ts
+│   └── session.model.js
 ├── routes/
-│   └── auth.routes.ts
+│   └── auth.routes.js
 └── validators/
-    └── auth.validator.ts
+    └── auth.validator.js
 ```
 
 **Endpoints:**
@@ -101,29 +101,29 @@ src/modules/auth/
 ```
 src/modules/company/
 ├── controllers/
-│   └── company.controller.ts
+│   └── company.controller.js
 ├── services/
-│   └── company.service.ts
+│   └── company.service.js
 ├── models/
-│   └── company.model.ts     # With embedded settings
+│   └── company.model.js     # With embedded settings
 ├── routes/
-│   └── company.routes.ts
+│   └── company.routes.js
 └── validators/
-    └── company.validator.ts
+    └── company.validator.js
 
 src/modules/role/
 ├── controllers/
-│   └── role.controller.ts
+│   └── role.controller.js
 ├── services/
-│   ├── role.service.ts
-│   └── permission.service.ts   # Permission checking logic
+│   ├── role.service.js
+│   └── permission.service.js   # Permission checking logic
 ├── models/
-│   ├── role.model.ts
-│   └── roleRelationship.model.ts
+│   ├── role.model.js
+│   └── roleRelationship.model.js
 ├── routes/
-│   └── role.routes.ts
+│   └── role.routes.js
 └── validators/
-    └── role.validator.ts
+    └── role.validator.js
 ```
 
 **Endpoints:**
@@ -149,17 +149,17 @@ src/modules/role/
 ```
 src/modules/user/
 ├── controllers/
-│   └── user.controller.ts
+│   └── user.controller.js
 ├── services/
-│   ├── user.service.ts
-│   └── userConnection.service.ts
+│   ├── user.service.js
+│   └── userConnection.service.js
 ├── models/
-│   ├── user.model.ts
-│   └── userConnection.model.ts
+│   ├── user.model.js
+│   └── userConnection.model.js
 ├── routes/
-│   └── user.routes.ts
+│   └── user.routes.js
 └── validators/
-    └── user.validator.ts
+    └── user.validator.js
 ```
 
 **Endpoints:**
@@ -182,21 +182,21 @@ src/modules/user/
 
 ```
 src/services/permission/
-├── permissionChecker.ts     # Core permission logic
-├── scopeResolver.ts         # Resolve own/direct/subtree/company
-└── permissionList.ts        # All permission definitions
+├── permissionChecker.js     # Core permission logic
+├── scopeResolver.js         # Resolve own/direct/subtree/company
+└── permissionList.js        # All permission definitions
 ```
 
 **Key Functions:**
-```typescript
+```javascript
 // Check if user has permission on target
-hasPermission(userId, permission, targetId): boolean
+async function hasPermission(userId, permission, targetId) { /* returns boolean */ }
 
 // Get all users in user's scope for a permission
-getUsersInScope(userId, permission): User[]
+async function getUsersInScope(userId, permission) { /* returns User array */ }
 
 // Check if user can perform action on target user
-canActOnUser(actorId, action, targetUserId): boolean
+async function canActOnUser(actorId, action, targetUserId) { /* returns boolean */ }
 ```
 
 ---
@@ -212,27 +212,27 @@ canActOnUser(actorId, action, targetUserId): boolean
 ```
 src/modules/workspace/
 ├── controllers/
-│   └── workspace.controller.ts
+│   └── workspace.controller.js
 ├── services/
-│   └── workspace.service.ts
+│   └── workspace.service.js
 ├── models/
-│   └── workspace.model.ts
+│   └── workspace.model.js
 ├── routes/
-│   └── workspace.routes.ts
+│   └── workspace.routes.js
 └── validators/
-    └── workspace.validator.ts
+    └── workspace.validator.js
 
 src/modules/task/
 ├── controllers/
-│   └── task.controller.ts
+│   └── task.controller.js
 ├── services/
-│   └── task.service.ts
+│   └── task.service.js
 ├── models/
-│   └── task.model.ts
+│   └── task.model.js
 ├── routes/
-│   └── task.routes.ts
+│   └── task.routes.js
 └── validators/
-    └── task.validator.ts
+    └── task.validator.js
 ```
 
 **Endpoints:**
@@ -261,16 +261,16 @@ src/modules/task/
 ```
 src/modules/submission/
 ├── controllers/
-│   └── submission.controller.ts
+│   └── submission.controller.js
 ├── services/
-│   ├── submission.service.ts
-│   └── fileUpload.service.ts
+│   ├── submission.service.js
+│   └── fileUpload.service.js
 ├── models/
-│   └── submission.model.ts
+│   └── submission.model.js
 ├── routes/
-│   └── submission.routes.ts
+│   └── submission.routes.js
 └── validators/
-    └── submission.validator.ts
+    └── submission.validator.js
 ```
 
 **Endpoints:**
@@ -287,14 +287,14 @@ src/modules/submission/
 ```
 src/modules/review/
 ├── controllers/
-│   └── review.controller.ts
+│   └── review.controller.js
 ├── services/
-│   ├── review.service.ts
-│   └── aiReview.service.ts    # Calls Python AI service
+│   ├── review.service.js
+│   └── aiReview.service.js    # Calls Python AI service
 ├── routes/
-│   └── review.routes.ts
+│   └── review.routes.js
 └── validators/
-    └── review.validator.ts
+    └── review.validator.js
 ```
 
 **Endpoints:**
@@ -326,17 +326,17 @@ Response: { score, remarks, detailed_review }
 ```
 src/modules/attendance/
 ├── controllers/
-│   └── attendance.controller.ts
+│   └── attendance.controller.js
 ├── services/
-│   ├── attendance.service.ts
-│   ├── clockIn.service.ts
-│   └── ipGeoCheck.service.ts
+│   ├── attendance.service.js
+│   ├── clockIn.service.js
+│   └── ipGeoCheck.service.js
 ├── models/
-│   └── attendance.model.ts
+│   └── attendance.model.js
 ├── routes/
-│   └── attendance.routes.ts
+│   └── attendance.routes.js
 └── validators/
-    └── attendance.validator.ts
+    └── attendance.validator.js
 ```
 
 **Endpoints:**
@@ -357,17 +357,17 @@ src/modules/attendance/
 ```
 src/modules/leave/
 ├── controllers/
-│   └── leave.controller.ts
+│   └── leave.controller.js
 ├── services/
-│   ├── leave.service.ts
-│   └── leaveBalance.service.ts
+│   ├── leave.service.js
+│   └── leaveBalance.service.js
 ├── models/
-│   ├── leaveRequest.model.ts
-│   └── leaveBalance.model.ts
+│   ├── leaveRequest.model.js
+│   └── leaveBalance.model.js
 ├── routes/
-│   └── leave.routes.ts
+│   └── leave.routes.js
 └── validators/
-    └── leave.validator.ts
+    └── leave.validator.js
 ```
 
 **Endpoints:**
@@ -388,27 +388,27 @@ src/modules/leave/
 ```
 src/modules/certificate/
 ├── controllers/
-│   └── certificate.controller.ts
+│   └── certificate.controller.js
 ├── services/
-│   ├── certificate.service.ts
-│   └── pdfGenerator.service.ts
+│   ├── certificate.service.js
+│   └── pdfGenerator.service.js  # Calls Python service
 ├── models/
-│   └── certificate.model.ts
+│   └── certificate.model.js
 ├── routes/
-│   └── certificate.routes.ts
+│   └── certificate.routes.js
 └── validators/
-    └── certificate.validator.ts
+    └── certificate.validator.js
 
 src/modules/report/
 ├── controllers/
-│   └── report.controller.ts
+│   └── report.controller.js
 ├── services/
-│   ├── report.service.ts
-│   └── reportData.service.ts
+│   ├── report.service.js
+│   └── reportData.service.js    # Calls Python service for PDF
 ├── routes/
-│   └── report.routes.ts
+│   └── report.routes.js
 └── validators/
-    └── report.validator.ts
+    └── report.validator.js
 ```
 
 **Endpoints:**
@@ -437,27 +437,27 @@ src/modules/report/
 ```
 src/modules/message/
 ├── controllers/
-│   └── message.controller.ts
+│   └── message.controller.js
 ├── services/
-│   └── message.service.ts
+│   └── message.service.js
 ├── models/
-│   └── message.model.ts
+│   └── message.model.js
 ├── routes/
-│   └── message.routes.ts
+│   └── message.routes.js
 └── validators/
-    └── message.validator.ts
+    └── message.validator.js
 
 src/modules/announcement/
 ├── controllers/
-│   └── announcement.controller.ts
+│   └── announcement.controller.js
 ├── services/
-│   └── announcement.service.ts
+│   └── announcement.service.js
 ├── models/
-│   └── announcement.model.ts
+│   └── announcement.model.js
 ├── routes/
-│   └── announcement.routes.ts
+│   └── announcement.routes.js
 └── validators/
-    └── announcement.validator.ts
+    └── announcement.validator.js
 ```
 
 **Endpoints:**
@@ -481,16 +481,16 @@ src/modules/announcement/
 ```
 src/modules/meeting/
 ├── controllers/
-│   └── meeting.controller.ts
+│   └── meeting.controller.js
 ├── services/
-│   ├── meeting.service.ts
-│   └── meetingCode.service.ts
+│   ├── meeting.service.js
+│   └── meetingCode.service.js
 ├── models/
-│   └── meeting.model.ts
+│   └── meeting.model.js
 ├── routes/
-│   └── meeting.routes.ts
+│   └── meeting.routes.js
 └── validators/
-    └── meeting.validator.ts
+    └── meeting.validator.js
 ```
 
 **Endpoints:**
@@ -510,23 +510,23 @@ src/modules/meeting/
 
 ```
 src/modules/socket/
-├── socketServer.ts           # Socket.io setup
+├── socketServer.js           # Socket.io setup
 ├── handlers/
-│   ├── connection.handler.ts
-│   ├── message.handler.ts
-│   ├── notification.handler.ts
-│   └── presence.handler.ts
+│   ├── connection.handler.js
+│   ├── message.handler.js
+│   ├── notification.handler.js
+│   └── presence.handler.js
 └── middleware/
-    └── socketAuth.ts
+    └── socketAuth.js
 
 src/modules/notification/
 ├── services/
-│   ├── notification.service.ts
-│   └── emailQueue.service.ts
+│   ├── notification.service.js
+│   └── emailQueue.service.js
 ├── templates/
 │   └── ... (email templates)
 └── jobs/
-    └── emailWorker.ts
+    └── emailWorker.js
 ```
 
 **Socket Events:**

@@ -1,894 +1,1280 @@
-# Intern Tracking System
+# Intern Tracking System - Complete Module Documentation
 
-> A comprehensive B2B SaaS platform for end-to-end intern progress tracking.
-
----
-
-## Quick Navigation
-
-| Section | Description |
-|---------|-------------|
-| [Problem Statement](#1-problem-statement) | Current gaps in intern tracking |
-| [Existing Solutions](#2-existing-solutions) | How companies currently manage |
-| [Our Strategy](#3-our-strategy) | What makes us different |
-| [Admin Playground](#4-admin-playground) | Custom role builder |
-| [Task Tracking System](#5-task-tracking-system) | Universal work tracking |
-| [Dashboard Framework](#6-dashboard-framework) | Flexible views for any role |
-| [Intern Lifecycle](#7-intern-lifecycle) | End-to-end journey |
+> Version 3.0 | Clear, detailed explanation of every module
 
 ---
 
-## 1. Problem Statement
+## Table of Contents
 
-### What's Broken Today?
+1. [System Overview](#1-system-overview)
+2. [Company Module](#2-company-module)
+3. [Role System](#3-role-system)
+4. [User Management](#4-user-management)
+5. [Workspace Module](#5-workspace-module)
+6. [Task System](#6-task-system)
+7. [Submission & Review System](#7-submission--review-system)
+8. [Attendance System](#8-attendance-system)
+9. [Leave Management](#9-leave-management)
+10. [Meeting System](#10-meeting-system)
+11. [Communication Module](#11-communication-module)
+12. [Report System](#12-report-system)
+13. [Certificate System](#13-certificate-system)
+14. [Dashboard & Widgets](#14-dashboard--widgets)
+15. [Tech Stack](#15-tech-stack)
+
+---
+
+## 1. System Overview
+
+### What Is This Application?
+
+This is a **multi-tenant SaaS platform** that helps companies manage their interns. Each company that signs up gets their own isolated space where they can:
+
+- Create custom organizational structures (roles)
+- Track intern tasks and progress
+- Manage attendance and leaves
+- Conduct reviews (AI + human)
+- Generate reports and certificates
+
+### Multi-Tenant Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                 CURRENT STATE OF INTERN TRACKING                │
+│                    OUR PLATFORM                                 │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  📊 Spreadsheets         → Hard to track, no real-time        │
-│  📧 Emails               → Gets lost, unorganized             │
-│  📝 Google Docs          → Scattered, no workflow             │
-│  📅 Manual Reports       → Time-consuming, inconsistent        │
-│  💬 Slack/Teams          → No formal tracking                  │
+│   ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│   │   COMPANY A  │  │   COMPANY B  │  │   COMPANY C  │         │
+│   │  (Acme Corp) │  │  (Tech Inc)  │  │  (StartupXY) │         │
+│   │              │  │              │  │              │         │
+│   │  • 3 Roles   │  │  • 5 Roles   │  │  • 4 Roles   │         │
+│   │  • 20 Users  │  │  • 50 Users  │  │  • 15 Users  │         │
+│   │  • 100 Tasks │  │  • 200 Tasks │  │  • 80 Tasks  │         │
+│   └──────────────┘  └──────────────┘  └──────────────┘         │
 │                                                                 │
-│  RESULT:                                                        │
-│  ❌ No unified view of intern progress                         │
-│  ❌ Manual effort for mentors                                  │
-│  ❌ No standardized evaluation                                 │
-│  ❌ Difficult to generate reports                              │
-│  ❌ No visibility for management                               │
+│   Each company is COMPLETELY ISOLATED                          │
+│   Company A cannot see Company B's data                        │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Pain Points by Role
+### How Companies Get Started
 
-| Role | Pain Point |
-|------|------------|
-| **HR/Admin** | No visibility into program effectiveness |
-| **Mentor** | Manual tracking in spreadsheets |
-| **Manager** | Hard to compare intern performance |
-| **Intern** | Unclear expectations, scattered feedback |
+1. Company admin signs up on our platform
+2. Admin sets up company name, logo, timezone
+3. Admin creates roles in the Role Playground
+4. Admin creates users and assigns them to roles
+5. Users receive login credentials via email
+6. Everyone starts working
 
 ---
 
-## 2. Existing Solutions
+## 2. Company Module
 
-### How Companies Currently Manage
+### What Is a Company?
 
+A **company** is a tenant in our system. When a company signs up, they get:
+
+- A unique login URL (e.g., `app.ourplatform.com/acme-corp`)
+- Their own set of roles, users, and data
+- Customizable settings and branding
+
+### Company Data
+
+| Field | What It Stores | Example |
+|-------|----------------|---------|
+| `name` | Company display name | "Acme Corporation" |
+| `slug` | URL-friendly identifier | "acme-corp" |
+| `logo_url` | Company logo image | "https://..." |
+| `timezone` | Default timezone | "Asia/Kolkata" |
+| `settings` | Branding, features | Colors, enabled features |
+| `attendance_config` | Attendance rules | Working hours, grace period |
+| `leave_types` | Available leave categories | Casual, Sick, WFH |
+| `task_categories` | Types of tasks | Development, Documentation |
+
+### Company Settings Explained
+
+**Branding Settings:**
+- Primary color (for UI theme)
+- Logo for dark/light mode
+- Company name display style
+
+**Feature Toggles:**
+- Enable/disable GitHub integration
+- Enable/disable video meetings
+- Enable/disable AI reviews
+
+**Attendance Configuration:**
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│              TYPICAL INTERN MANAGEMENT STACK                    │
-│                                                                 │
-│   ┌──────────────────┐   ┌──────────────────┐                  │
-│   │  Google Sheets   │   │   Jira/Asana     │                  │
-│   │  (Tracking)      │   │   (Tasks)        │                  │
-│   └────────┬─────────┘   └────────┬─────────┘                  │
-│            │                      │                             │
-│            └──────────┬───────────┘                             │
-│                       │                                         │
-│               ❌ NOT INTEGRATED                                 │
-│                       │                                         │
-│            ┌──────────┴───────────┐                             │
-│            │                      │                             │
-│   ┌────────▼─────────┐   ┌────────▼─────────┐                  │
-│   │   Slack/Teams    │   │    Email         │                  │
-│   │   (Comm)         │   │   (Reports)      │                  │
-│   └──────────────────┘   └──────────────────┘                  │
-│                                                                 │
-│   PROBLEMS:                                                     │
-│   • Data in multiple places                                    │
-│   • Manual export/import                                       │
-│   • No intern-specific features                                │
-│   • No built-in evaluation                                     │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+attendance_config: {
+  enabled: true,                    // Is attendance tracking on?
+  methods: ["manual"],              // How do users clock in?
+  work_start: "09:00",              // What time does work start?
+  work_end: "18:00",                // What time does work end?
+  grace_minutes: 15,                // Minutes late before marked late
+  min_hours_full: 8,                // Hours needed for full day
+  min_hours_half: 4,                // Hours needed for half day
+  allowed_ips: [],                  // If IP restriction is on
+  geo_fence: { enabled: false }     // If location restriction is on
+}
 ```
 
-### Competitors Analysis
-
-| Solution | Type | Limitation |
-|----------|------|------------|
-| **Softr/Airtable Templates** | Generic | Not purpose-built for interns |
-| **HRIS Systems** | Full HR | Overkill, expensive |
-| **Project Management Tools** | Task-focused | No intern lifecycle tracking |
-| **Custom Spreadsheets** | DIY | No automation, manual effort |
+**Leave Types:**
+```
+leave_types: [
+  { name: "Casual", quota: 12, is_paid: true },     // 12 casual leaves per year
+  { name: "Sick", quota: 6, is_paid: true },        // 6 sick leaves per year
+  { name: "WFH", quota: null, is_paid: true }       // Unlimited WFH
+]
+```
 
 ---
 
-## 3. Our Strategy
+## 3. Role System
 
-### Core Positioning
+### What Is a Role?
+
+A **role** is a job template that defines:
+- What permissions someone has
+- What profile information they need to provide
+- Who they can interact with
+
+### Understanding Role Categories
+
+Every role belongs to one of three categories:
+
+| Category | Purpose | Examples |
+|----------|---------|----------|
+| `admin` | Full control of the company | Super Admin, Company Admin |
+| `staff` | Manages and reviews interns | Mentor, Supervisor, Reviewer |
+| `intern` | The people being tracked | Software Intern, Design Intern |
+
+### Role Example: Technical Mentor
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                                                                 │
-│      WE ARE NOT:                   WE ARE:                     │
-│      ────────────                  ───────                     │
-│                                                                 │
-│      ❌ Replacing Slack           ✅ Tracking intern work      │
-│      ❌ Replacing GitHub          ✅ Evaluating submissions    │
-│      ❌ Full HR system            ✅ Purpose-built for interns │
-│      ❌ Project management        ✅ Progress visibility       │
-│                                                                 │
-│      ─────────────────────────────────────────────────────     │
-│                                                                 │
-│                   INTERN TRACKING LAYER                        │
-│            (Sits on top of existing workflows)                 │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+Role: "Technical Mentor"
+Category: staff
+
+Permissions:
+┌────────────────────────────────────────────────────────────────┐
+│ This role CAN:                                                 │
+│                                                                │
+│ • View users in their subtree (interns under them)            │
+│ • Create tasks for their interns                              │
+│ • Review and score submissions                                │
+│ • View attendance of their interns                            │
+│ • Approve/reject leave requests from direct reports           │
+│ • Schedule meetings                                           │
+│ • Generate reports for their interns                          │
+│                                                                │
+│ This role CANNOT:                                              │
+│                                                                │
+│ • Create or delete users                                      │
+│ • Modify company settings                                     │
+│ • Access other mentors' interns                               │
+│ • View company-wide reports                                   │
+└────────────────────────────────────────────────────────────────┘
+
+Profile Fields (what mentor must fill):
+• Department (dropdown: Engineering, Design, QA)
+• Years of Experience (number)
+• Specialization (text)
 ```
 
-### Key Differentiators
+### Role Example: Intern
 
-| Feature | Why It Matters |
-|---------|----------------|
-| **Admin Playground** | Build ANY org structure visually |
-| **Universal Task Types** | Track ANY kind of work |
-| **AI Evaluation** | Automated, consistent scoring |
-| **Flexible Dashboards** | Views adapt to custom roles |
-| **End-to-End Lifecycle** | Onboarding → Active → Exit |
+```
+Role: "Software Intern"
+Category: intern
+
+Permissions:
+┌────────────────────────────────────────────────────────────────┐
+│ This role CAN:                                                 │
+│                                                                │
+│ • View their own tasks                                        │
+│ • Submit work for tasks                                       │
+│ • Clock in/out for attendance                                 │
+│ • Request leaves                                              │
+│ • View their own scores and reviews                          │
+│ • Send messages to mentor                                     │
+│ • Join meetings they're invited to                           │
+│                                                                │
+│ This role CANNOT:                                              │
+│                                                                │
+│ • Create tasks                                                │
+│ • Review anyone's work                                        │
+│ • See other interns' data                                     │
+│ • Approve leaves                                              │
+└────────────────────────────────────────────────────────────────┘
+
+Profile Fields (what intern must fill):
+• College Name (text)
+• Degree (dropdown: B.Tech, B.E., M.Tech, etc.)
+• Internship Start Date (date)
+• Internship End Date (date)
+• Skills (multi-select)
+```
+
+### Role Relationships
+
+Roles connect to each other through **relationships**. These define the org structure.
+
+```
+RELATIONSHIP TYPES:
+
+"manages"   → One role manages another (HR/Admin style)
+"mentors"   → One role guides another (Technical guidance)
+"reviews"   → One role reviews work of another
+"supports"  → One role assists another (Buddy system)
+"oversees"  → One role supervises another (Higher management)
+```
+
+**Example Organization:**
+
+```
+                    ┌───────────────┐
+                    │  Company      │
+                    │  Admin        │
+                    └───────┬───────┘
+                            │ manages
+                    ┌───────▼───────┐
+                    │  Engineering  │
+                    │  Manager      │
+                    └───────┬───────┘
+                            │ manages
+            ┌───────────────┼───────────────┐
+            │               │               │
+    ┌───────▼───────┐ ┌─────▼─────┐ ┌───────▼───────┐
+    │  Technical    │ │   QA      │ │   Design      │
+    │  Mentor       │ │ Reviewer  │ │   Lead        │
+    └───────┬───────┘ └─────┬─────┘ └───────┬───────┘
+            │               │               │
+            │ mentors       │ reviews       │ mentors
+            │               │               │
+    ┌───────▼───────────────▼───────────────▼───────┐
+    │                   INTERNS                      │
+    └────────────────────────────────────────────────┘
+```
+
+### Permission Scopes
+
+Every permission has a **scope** that defines whose data it applies to:
+
+| Scope | Meaning | Example |
+|-------|---------|---------|
+| `own` | Only my own data | Intern can view own attendance |
+| `direct` | My immediate children | Mentor can approve leave of interns directly under them |
+| `subtree` | All descendants | Manager can view all users under all their mentors |
+| `company` | Everyone in company | Admin can view all company data |
+
+**Example:**
+```
+Permission: attendance.read
+Scope: subtree
+
+If John (Mentor) has this permission, he can see attendance of:
+✓ His own attendance
+✓ Alice (his intern)
+✓ Bob (his intern)
+✗ Charlie (another mentor's intern)
+```
+
+### How Admin Creates Roles
+
+1. Open Role Playground (visual builder)
+2. Click "Create New Role"
+3. Enter role name, category, icon, color
+4. Define permissions by checking boxes with scopes
+5. Define profile fields (what info to collect)
+6. Save role
+7. Connect role to other roles (relationships)
 
 ---
 
-## 4. Admin Playground
+## 4. User Management
 
-### Concept: Visual Role Builder
+### What Is a User?
 
-Admin can build **any** organization structure using a graph-like interface.
+A **user** is an actual person with an account. Users are created by admins and assigned to roles.
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ 🎮 ORG STRUCTURE BUILDER                        [Save] [Reset] │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ROLE PALETTE                 │        CANVAS                  │
-│  ┌──────────────┐             │                                │
-│  │ + New Role   │             │     ┌──────────┐               │
-│  ├──────────────┤             │     │   PM     │               │
-│  │ 👤 Staff     │             │     └────┬─────┘               │
-│  │ 🎓 Intern    │             │          │                     │
-│  │ 👁 Reviewer  │             │     ┌────▼─────┐               │
-│  │ 🤝 Buddy    │             │     │Tech Lead │               │
-│  └──────────────┘             │     └────┬─────┘               │
-│                               │     ┌────┴────┐                │
-│                               │     ▼         ▼                │
-│                               │ ┌──────┐ ┌──────┐              │
-│                               │ │Mentor│ │Buddy │              │
-│                               │ └──┬───┘ └──┬───┘              │
-│                               │    ▼         ▼                 │
-│                               │ ┌──────────────┐               │
-│                               │ │    Intern    │               │
-│                               │ └──────────────┘               │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Creating Roles (Nodes)
-
-Each role has:
-
-| Property | Description |
-|----------|-------------|
-| **Name** | Custom name (Host, Mentor, Lead, etc.) |
-| **Category** | Staff / Intern |
-| **Icon + Color** | Visual identifier |
-| **Profile Fields** | What info to collect |
-| **Permissions** | What this role can do |
-
-### Connecting Roles (Edges)
-
-**Predefined Relationship Types:**
-
-| Relationship | Direction | Meaning |
-|--------------|:---------:|---------|
-| **manages** | A → B | Full authority |
-| **mentors** | A → B | Guides, assigns tasks |
-| **reviews** | A → B | Reviews submissions only |
-| **supports** | A → B | Peer support, no authority |
-| **oversees** | A → B | Read-only visibility |
-
-### Permissions Library
+### User Creation Flow
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│ PERMISSION CATEGORIES                                           │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│ TASKS                       │ USERS                            │
-│ • Create                    │ • Create                         │
-│ • Assign                    │ • Edit                           │
-│ • Review                    │ • View (subtree/all)             │
-│ • Score                     │                                  │
-│                             │                                  │
-│ ATTENDANCE                  │ REPORTS                          │
-│ • View                      │ • View own                       │
-│ • Approve leave             │ • View subtree                   │
-│                             │ • Generate                       │
-│                             │ • Export                         │
-│ MEETINGS                    │                                  │
-│ • Schedule                  │ SETTINGS                         │
-│ • Invite                    │ • Edit profile                   │
-│ • Record                    │ • Configure roles                │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+ADMIN                                    SYSTEM                              NEW USER
+  │                                         │                                    │
+  │ 1. Fill user form:                      │                                    │
+  │    • Name: Alice Johnson                │                                    │
+  │    • Email: alice@gmail.com             │                                    │
+  │    • Role: Software Intern              │                                    │
+  │    • Connect to: John (Mentor)          │                                    │
+  │                                         │                                    │
+  ├─────────── Create User ─────────────────►                                    │
+  │                                         │                                    │
+  │                                         │ 2. Generate temp password          │
+  │                                         │    "TempPass@123"                  │
+  │                                         │                                    │
+  │                                         │ 3. Save user to database           │
+  │                                         │                                    │
+  │                                         │ 4. Create user connection:         │
+  │                                         │    John → mentors → Alice          │
+  │                                         │                                    │
+  │                                         ├───── Welcome Email ────────────────►
+  │                                         │                                    │
+  │                                         │      "Your account is ready!"      │
+  │                                         │      "Login: alice@gmail.com"      │
+  │                                         │      "Temp Password: TempPass@123" │
+  │                                         │      "Login URL: app.../acme-corp" │
+  │                                         │                                    │
+  │                                         │                               5. User clicks link
+  │                                         │                               6. Enters temp password
+  │                                         │                               7. Sets new password
+  │                                         │                               8. Fills profile fields
+  │                                         │                               9. Ready to use!
 ```
 
-### Data Scope Options
+### User Data
 
-For each permission, admin sets **scope**:
+| Field | What It Stores |
+|-------|----------------|
+| `name` | Full name |
+| `email` | Login email |
+| `password_hash` | Encrypted password |
+| `role_id` | Which role they belong to |
+| `profile_photo` | Avatar image URL |
+| `profile_data` | Dynamic fields based on role |
+| `github` | GitHub integration info |
+| `status` | active, suspended, exited |
+| `temp_password` | True if needs to change password |
 
-| Scope | Meaning |
-|-------|---------|
-| **Own** | Only their own data |
-| **Direct** | Immediate children only |
-| **Subtree** | All descendants |
-| **Company** | Everyone |
+### User Connections
 
-### Templates
+**User connections** track who reports to whom.
 
-Pre-built structures for quick start:
+```
+user_connections:
+┌──────────────┬─────────────┬──────────────────┐
+│ from_user    │ to_user     │ relationship     │
+├──────────────┼─────────────┼──────────────────┤
+│ John (Mentor)│ Alice       │ "mentors"        │
+│ John (Mentor)│ Bob         │ "mentors"        │
+│ Sarah (QA)   │ Alice       │ "reviews"        │
+│ Sarah (QA)   │ Bob         │ "reviews"        │
+└──────────────┴─────────────┴──────────────────┘
 
-| Template | Structure |
-|----------|-----------|
-| **Simple** | Admin → Mentor → Intern |
-| **With Supervisor** | Admin → Supervisor → Mentor → Intern |
-| **Big Tech** | Admin → Manager → Host + Buddy → Intern |
-| **With Reviewer** | Admin → Mentor → Intern + Reviewer |
+This means:
+• John mentors Alice and Bob
+• Sarah reviews Alice's and Bob's work
+```
+
+### User Statuses
+
+| Status | Meaning |
+|--------|---------|
+| `active` | Normal working user |
+| `suspended` | Temporarily disabled (can be reactivated) |
+| `exited` | Internship completed or terminated |
 
 ---
 
-## 5. Task Tracking System
+## 5. Workspace Module
 
-### Universal Task Types
+### What Is a Workspace?
 
-Our system tracks **any** kind of work an intern does:
+A **workspace** is a container that groups related work together. Think of it like a project folder.
+
+### Why Workspaces?
 
 ```
+WITHOUT WORKSPACES:
+All tasks dumped together, no organization
+
+WITH WORKSPACES:
 ┌─────────────────────────────────────────────────────────────────┐
-│                  TASK CATEGORIES                                │
-├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  💻 DEVELOPMENT       │  📝 DOCUMENTATION     │  🔍 RESEARCH   │
-│  ─────────────────    │  ─────────────────    │  ───────────   │
-│  • Bug fixes          │  • Technical docs     │  • POC         │
-│  • Feature dev        │  • API docs           │  • Learning    │
-│  • API work           │  • User guides        │  • Tech research│
-│  • Frontend UI        │  • Meeting notes      │  • Exploration │
-│  • Testing            │  • Handover docs      │               │
-│                       │                       │               │
-│  🎨 DESIGN            │  📊 DATA              │  ⚙️ DEVOPS     │
-│  ─────────────────    │  ─────────────────    │  ───────────   │
-│  • Wireframes         │  • Spreadsheet work   │  • Setup       │
-│  • UI mockups         │  • Report generation  │  • Deployment  │
-│  • UX research        │  • Data entry         │  • CI/CD       │
-│  • Design review      │  • Analysis           │  • Monitoring  │
-│                       │                       │               │
-│  🧪 TESTING           │  📣 PRESENTATION      │  📁 OTHER      │
-│  ─────────────────    │  ─────────────────    │  ───────────   │
-│  • Manual testing     │  • Demo               │  • Custom      │
-│  • Test cases         │  • Status update      │               │
-│  • Bug reporting      │  • Showcase           │               │
-│  • Automation         │                       │               │
+│  ┌────────────────────┐  ┌────────────────────┐                │
+│  │ Q1 Backend Project │  │ Mobile App Project │                │
+│  │                    │  │                    │                │
+│  │ • 15 tasks         │  │ • 10 tasks         │                │
+│  │ • 3 interns        │  │ • 2 interns        │                │
+│  │ • Due: March 31    │  │ • Due: April 15    │                │
+│  └────────────────────┘  └────────────────────┘                │
+│                                                                 │
+│  Each workspace has its own:                                    │
+│  • Tasks                                                        │
+│  • Members (who can see this workspace)                        │
+│  • Announcements                                                │
+│  • Resources                                                    │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Task Structure
+### Workspace Members
 
-Every task has:
+Workspaces have members with roles:
 
-| Field | Description |
-|-------|-------------|
-| **Title** | Short name |
-| **Category** | Type from above |
-| **Description** | Rich text details |
-| **Deadline** | Due date/time |
-| **Points** | Score weight |
-| **Assignees** | Which interns |
-| **Submission Type** | What to submit |
+| Member Role | What They Can Do |
+|-------------|------------------|
+| `owner` | Full control (edit, delete workspace, manage members) |
+| `member` | View workspace, see tasks, see announcements |
+
+---
+
+## 6. Task System
+
+### What Is a Task?
+
+A **task** is a piece of work assigned to interns. It has a deadline, points, and requires a submission.
+
+### Task Categories
+
+Every company can customize their task categories. Default categories:
+
+| Category | Icon | Used For |
+|----------|------|----------|
+| Development | 💻 | Coding work |
+| Documentation | 📝 | Writing docs, guides |
+| Research | 🔍 | Learning, exploration, POCs |
+| Design | 🎨 | UI/UX wireframes, mockups |
+| Testing | 🧪 | QA work, test cases |
+| Data | 📊 | Spreadsheets, analysis |
+| DevOps | ⚙️ | Setup, deployment |
+| Presentation | 📣 | Demos, status updates |
+| Other | 📁 | Anything else |
+
+### Task Data
+
+| Field | What It Stores | Example |
+|-------|----------------|---------|
+| `title` | Short task name | "Build Login API" |
+| `description` | Detailed instructions | Rich text with requirements |
+| `category` | Type of work | "Development" |
+| `workspace_id` | Which workspace | Ref to workspace |
+| `deadline` | When it's due | Jan 20, 2026 5:00 PM |
+| `points` | Score weight | 10 points |
+| `submission_type` | What to submit | "github", "file", "mixed" |
+| `assignees` | Who should do it | List of intern IDs |
 
 ### Submission Types
 
-| Type | Description | Example |
-|------|-------------|---------|
-| **File Upload** | Any file type | .zip, .pdf, doc |
-| **GitHub Link** | PR or repo link | github.com/... |
-| **External URL** | Figma, Docs, Drive | figma.com/... |
-| **Text** | Written response | Summary, notes |
-| **Mixed** | Combination | Files + link |
+| Type | What Intern Submits | Example |
+|------|---------------------|---------|
+| `file` | Upload files | .zip, .pdf, .docx |
+| `github` | GitHub link | PR URL, repo link |
+| `url` | Any external URL | Figma, Google Docs |
+| `text` | Written response | Summary, notes |
+| `mixed` | Combination | Files + GitHub + text |
 
-### Task Flow
+### Task Status Flow (Per Assignee)
 
 ```
-TASK CREATED (by authorized role)
-        │
-        ▼
-┌─────────────────────────────────────────────────────────────────┐
-│ TASK: "Build User Auth API"                                     │
-│ Category: Development  │  Deadline: Jan 15  │  Points: 10      │
-│ Submit: GitHub Link + Documentation File                       │
-└─────────────────────────────────────────────────────────────────┘
-        │
-        ├── Notification sent to assignees
-        │
-        ▼
-INTERN WORKS
-        │
-        ├── Updates status: Pending → In Progress
-        │
-        ▼
-INTERN SUBMITS
-        │
-        ├── Upload files / paste links
-        ├── Can resubmit before deadline
-        ├── Late? Marked "Submitted Late"
-        │
-        ▼
-AI REVIEW (Automatic after deadline)
-        │
-        ├── Analyzes submission
-        ├── Generates score + remarks
-        │
-        ▼
-HUMAN REVIEW (Mentor or Reviewer)
-        │
-        ├── Views AI analysis
-        ├── Approves / Modifies score
-        ├── Adds remarks
-        │
-        ▼
-COMPLETED
-        │
-        └── Intern sees final score + feedback
+    ┌─────────────────────────────────────────────────────────────┐
+    │                      TASK LIFECYCLE                         │
+    └─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+    ┌─────────────────────────────────────────────────────────────┐
+    │ PENDING                                                     │
+    │ Task assigned, intern hasn't started                        │
+    └─────────────────────────────────┬───────────────────────────┘
+                                      │ Intern clicks "Start"
+                                      ▼
+    ┌─────────────────────────────────────────────────────────────┐
+    │ IN_PROGRESS                                                 │
+    │ Intern is working on it                                     │
+    └─────────────────────────────────┬───────────────────────────┘
+                                      │ Intern submits work
+                                      ▼
+                      ┌───────────────┴───────────────┐
+                      │                               │
+            Before deadline                   After deadline
+                      │                               │
+                      ▼                               ▼
+              ┌──────────────┐              ┌──────────────────┐
+              │ SUBMITTED    │              │ LATE_SUBMITTED   │
+              └──────────────┘              └──────────────────┘
+                      │                               │
+                      └───────────────┬───────────────┘
+                                      │ Goes for review
+                                      ▼
+    ┌─────────────────────────────────────────────────────────────┐
+    │ UNDER_REVIEW                                                │
+    │ AI and/or human is reviewing                                │
+    └─────────────────────────────────┬───────────────────────────┘
+                                      │
+                      ┌───────────────┴───────────────┐
+                      │                               │
+               Approved                        Needs revision
+                      │                               │
+                      ▼                               ▼
+              ┌──────────────┐              ┌──────────────────┐
+              │ APPROVED ✓   │              │ REVISION_NEEDED  │
+              │ Task done!   │              │ Fix and resubmit │
+              └──────────────┘              └────────┬─────────┘
+                                                     │
+                                                     │ Intern resubmits
+                                                     ▼
+                                            (Back to UNDER_REVIEW)
 ```
 
-### Status Mapping
+### Creating a Task (Example)
 
-| Staff View | Intern View |
-|------------|-------------|
-| Assigned | Pending |
-| In Progress | In Progress |
-| Submitted (3/5) | Submitted |
-| Under AI Review | Under Review |
-| Pending Review | Under Review |
-| Completed | Approved / Needs Revision |
+```
+Mentor John creates a task:
+
+Title: "Implement User Authentication"
+Category: Development
+Workspace: Q1 Backend Project
+Description: 
+  "Build a complete user authentication system with:
+   - Email/password login
+   - JWT token generation
+   - Password reset via email
+   - Rate limiting on login attempts
+   
+   Refer to these docs: [links]
+   
+   Expected deliverables:
+   - Working code pushed to repo
+   - API documentation
+   - Test cases"
+
+Deadline: January 20, 2026 5:00 PM
+Points: 20
+Submission Type: Mixed (GitHub + File)
+Assign to: Alice, Bob
+```
 
 ---
 
-## 6. Dashboard Framework
+## 7. Submission & Review System
 
-### How It Works
+### Submission Flow
+
+```
+INTERN                           SYSTEM                          REVIEWERS
+  │                                 │                                 │
+  │ 1. Complete work                │                                 │
+  │                                 │                                 │
+  │ 2. Click "Submit"               │                                 │
+  │    - Upload files               │                                 │
+  │    - Paste GitHub PR link       │                                 │
+  │    - Add notes                  │                                 │
+  │                                 │                                 │
+  ├──────── Submit ─────────────────►                                 │
+  │                                 │                                 │
+  │                                 │ 3. Save submission              │
+  │                                 │                                 │
+  │                                 │ 4. Check if late                │
+  │                                 │    (compare with deadline)      │
+  │                                 │                                 │
+  │                                 │ 5. Trigger AI Review ───────────►
+  │                                 │    (send to Python service)     │
+  │                                 │                                 │
+  │                         ◄─────── AI Review Result ────────────────┤
+  │                                 │                                 │
+  │                                 │ 6. Save AI review               │
+  │                                 │                                 │
+  │                                 │ 7. Notify human reviewers ──────►
+  │                                 │                                 │
+  │                                 │                    8. Human opens submission
+  │                                 │                    9. Sees AI score + remarks
+  │                                 │                    10. Adds own review
+  │                                 │                    11. Approves or requests revision
+  │                                 │                                 │
+  │                         ◄────── Notification ─────────────────────┤
+  │                                 │                                 │
+  │ 12. See final result            │                                 │
+```
+
+### AI Review System (Python Service)
+
+The AI review service is a **separate Python application** that receives submissions and returns structured reviews.
+
+**How It Works:**
+
+```
+Node.js Backend                    Python AI Service
+      │                                  │
+      │  POST /ai/review                 │
+      │  {                               │
+      │    task: {                       │
+      │      title: "Build Auth API",    │
+      │      category: "Development",    │
+      │      description: "...",         │
+      │      rubric: [criteria]          │
+      │    },                            │
+      │    submission: {                 │
+      │      github_link: "...",         │
+      │      files: [...],               │
+      │      text: "..."                 │
+      │    }                             │
+      │  }                               │
+      ├──────────────────────────────────►
+      │                                  │
+      │                                  │ 1. Parse submission
+      │                                  │ 2. Analyze code (if GitHub)
+      │                                  │ 3. Check against rubric
+      │                                  │ 4. Generate feedback
+      │                                  │
+      │  Response:                       │
+      │  {                               │
+      │    score: 8,                     │
+      │    max_score: 10,                │
+      │    remarks: "Good work...",      │
+      │    detailed_review: {            │
+      │      strengths: ["...", "..."],  │
+      │      improvements: ["...", "..."],│
+      │      code_quality: 8,            │
+      │      functionality: 9,           │
+      │      documentation: 7            │
+      │    }                             │
+      │  }                               │
+      ◄──────────────────────────────────┤
+```
+
+### Review Storage
+
+Reviews are embedded inside the submission document:
+
+```javascript
+submission: {
+  _id: "...",
+  task_id: "...",
+  user_id: "...",
+  submission_data: { files: [...], github_links: [...] },
+  
+  reviews: [
+    {
+      type: "ai",
+      score: 8,
+      max_score: 10,
+      remarks: "Good implementation with clean code...",
+      detailed_review: {
+        strengths: ["Clean code structure", "Good error handling"],
+        improvements: ["Add rate limiting", "Missing input validation"],
+        code_quality: 8,
+        functionality: 9,
+        documentation: 7
+      },
+      reviewed_at: "2026-01-15T10:30:00Z"
+    },
+    {
+      type: "human",
+      reviewer_id: "john_mentor_id",
+      score: 8.5,
+      max_score: 10,
+      remarks: "Excellent work! Minor improvements needed in security.",
+      reviewed_at: "2026-01-15T14:00:00Z"
+    }
+  ],
+  
+  final_status: "approved",
+  final_score: 8.5
+}
+```
+
+---
+
+## 8. Attendance System
+
+### What It Tracks
+
+The attendance system tracks when users clock in and out each day.
+
+### Clock In/Out Flow
+
+```
+USER                                 SYSTEM
+  │                                    │
+  │ 1. Open app, click "Clock In"      │
+  │                                    │
+  ├──────── Clock In Request ──────────►
+  │         (includes IP, location)    │
+  │                                    │
+  │                                    │ 2. Check current time
+  │                                    │    Work starts: 9:00 AM
+  │                                    │    Current time: 9:10 AM
+  │                                    │    Grace period: 15 min
+  │                                    │    → Within grace, NOT late
+  │                                    │
+  │                                    │ 3. Check IP (if enabled)
+  │                                    │    Allowed IPs: 192.168.1.x
+  │                                    │    User IP: 192.168.1.50
+  │                                    │    → IP verified ✓
+  │                                    │
+  │                                    │ 4. Check location (if enabled)
+  │                                    │    Office: 12.97, 77.59
+  │                                    │    User: 12.97, 77.60
+  │                                    │    Distance: 100m (within 500m)
+  │                                    │    → Location verified ✓
+  │                                    │
+  │                                    │ 5. Create attendance record
+  │         ◄────── Success ───────────┤
+  │                                    │
+  │ ... 8 hours later ...              │
+  │                                    │
+  │ 6. Click "Clock Out"               │
+  │                                    │
+  ├──────── Clock Out Request ─────────►
+  │                                    │
+  │                                    │ 7. Calculate total hours
+  │                                    │    Clock in: 9:10 AM
+  │                                    │    Clock out: 6:15 PM
+  │                                    │    Total: 9h 5m
+  │                                    │    → Full day ✓
+  │                                    │
+  │                                    │ 8. Update attendance record
+  │         ◄────── Success ───────────┤
+```
+
+### Attendance Record
+
+```javascript
+attendance: {
+  _id: "...",
+  user_id: "alice_id",
+  date: "2026-01-15",
+  
+  clock_in: "2026-01-15T09:10:00Z",
+  clock_out: "2026-01-15T18:15:00Z",
+  
+  total_hours: 9.08,
+  
+  status: "present",           // present, half_day, absent, leave, wfh
+  
+  late_by_minutes: 0,          // How many minutes late
+  early_by_minutes: 0,         // How many minutes left early
+  
+  clock_in_info: {
+    ip: "192.168.1.50",
+    location: { lat: 12.97, lng: 77.59 },
+    method: "manual"           // manual, ip_verified, geo_verified
+  }
+}
+```
+
+### Attendance Statuses
+
+| Status | Meaning | Calculated When |
+|--------|---------|-----------------|
+| `present` | Full working day | total_hours >= min_hours_full |
+| `half_day` | Half day | total_hours >= min_hours_half |
+| `absent` | Didn't clock in | No record for the day |
+| `leave` | On approved leave | Leave request approved |
+| `wfh` | Working from home | WFH approved |
+
+---
+
+## 9. Leave Management
+
+### Leave Request Flow
+
+```
+INTERN                      SYSTEM                      APPROVER (Mentor)
+  │                            │                              │
+  │ 1. Fill leave form:        │                              │
+  │    Type: Casual            │                              │
+  │    From: Jan 20            │                              │
+  │    To: Jan 21              │                              │
+  │    Reason: Family function │                              │
+  │                            │                              │
+  ├──── Submit Request ────────►                              │
+  │                            │                              │
+  │                            │ 2. Check balance             │
+  │                            │    Casual: 10 remaining      │
+  │                            │    Requesting: 2 days        │
+  │                            │    → Has enough ✓            │
+  │                            │                              │
+  │                            │ 3. Find approver             │
+  │                            │    Who has leave.approve     │
+  │                            │    for this user?            │
+  │                            │    → John (Mentor)           │
+  │                            │                              │
+  │                            │ 4. Create leave_request      │
+  │                            │    status: "pending"         │
+  │                            │                              │
+  │                            ├──── Notification ────────────►
+  │                            │     "Alice requested leave"  │
+  │                            │                              │
+  │                            │                    5. Review request
+  │                            │                    6. Click Approve/Reject
+  │                            │                              │
+  │                            ◄──── Approve ─────────────────┤
+  │                            │                              │
+  │                            │ 7. Update leave_request      │
+  │                            │    status: "approved"        │
+  │                            │                              │
+  │                            │ 8. Update leave_balance      │
+  │                            │    used: +2 days             │
+  │                            │                              │
+  │                            │ 9. Mark attendance as "leave"│
+  │                            │    for Jan 20, 21            │
+  │                            │                              │
+  │   ◄──── Notification ──────┤                              │
+  │   "Leave approved!"        │                              │
+```
+
+### Leave Balance
+
+Each user has a balance per leave type per year:
+
+```javascript
+leave_balance: {
+  user_id: "alice_id",
+  year: 2026,
+  balances: [
+    { type: "Casual", total: 12, used: 2, remaining: 10 },
+    { type: "Sick", total: 6, used: 0, remaining: 6 },
+    { type: "WFH", total: null, used: 5, remaining: null }  // unlimited
+  ]
+}
+```
+
+---
+
+## 10. Meeting System
+
+### What Is a Meeting?
+
+Meetings are scheduled video calls within the platform.
+
+### Meeting Flow
+
+```
+HOST (Mentor)                  SYSTEM                     PARTICIPANTS
+  │                               │                             │
+  │ 1. Schedule meeting:          │                             │
+  │    Title: "1:1 with Alice"    │                             │
+  │    Date: Jan 15, 3:00 PM      │                             │
+  │    Duration: 30 min           │                             │
+  │    Invite: Alice              │                             │
+  │                               │                             │
+  ├──── Create Meeting ───────────►                             │
+  │                               │                             │
+  │                               │ 2. Generate meeting code    │
+  │                               │    "MET-20260115-A1B2"      │
+  │                               │                             │
+  │                               │ 3. Generate passkey         │
+  │                               │    "1234"                   │
+  │                               │                             │
+  │                               │ 4. Save meeting             │
+  │                               │                             │
+  │                               ├──── Email Invite ───────────►
+  │                               │     "You're invited to..."  │
+  │                               │                             │
+  │                               │     ... 15 min before ...   │
+  │                               │                             │
+  │                               ├──── Reminder ───────────────►
+  │                               │     "Meeting in 15 min"     │
+  │                               │                             │
+  │ 5. Click "Start Meeting"      │                             │
+  │                               │                             │
+  ├──── Start ────────────────────►                             │
+  │                               │ 6. Update status: "ongoing" │
+  │                               │                             │
+  │                               │                    7. Click "Join"
+  │                               ◄──────────────────── Join ───┤
+  │                               │                             │
+  │     ◄──── WebRTC Connection ──┴─────────────────────────────►
+  │           Video call started!                               │
+```
+
+### Meeting Data
+
+```javascript
+meeting: {
+  _id: "...",
+  title: "1:1 with Alice",
+  description: "Weekly catch-up",
+  
+  meeting_code: "MET-20260115-A1B2",
+  passkey: "1234",
+  
+  scheduled_at: "2026-01-15T15:00:00Z",
+  duration_minutes: 30,
+  
+  host_id: "john_mentor_id",
+  
+  participants: [
+    {
+      user_id: "alice_id",
+      status: "accepted",         // invited, accepted, declined, joined
+      invited_at: "2026-01-14T10:00:00Z",
+      joined_at: "2026-01-15T15:02:00Z"
+    }
+  ],
+  
+  status: "ended",                 // scheduled, ongoing, ended, cancelled
+  recording_url: "https://..."     // If recorded
+}
+```
+
+---
+
+## 11. Communication Module
+
+### Types of Communication
+
+| Type | Purpose | Example |
+|------|---------|---------|
+| **Direct Messages (DM)** | 1:1 chat between users | Intern messaging mentor |
+| **Task Comments** | Discussion on a specific task | Questions about requirements |
+| **Workspace Announcements** | Broadcast to all members | "New project starting Monday" |
+
+### Message Storage
+
+All messages use a unified structure:
+
+```javascript
+message: {
+  _id: "...",
+  company_id: "...",
+  
+  context_type: "dm",              // "dm", "task_comment", "workspace_discussion"
+  context_id: "other_user_id",     // Who/what is the context
+  
+  sender_id: "alice_id",
+  content: "Hey, can you clarify requirement #3?",
+  
+  attachments: [
+    { type: "image", url: "https://...", name: "screenshot.png" }
+  ],
+  
+  reply_to: null,                  // If replying to another message
+  
+  created_at: "2026-01-15T10:30:00Z"
+}
+```
+
+### Real-Time with WebSocket
+
+Messages are delivered in real-time using WebSocket:
+
+```
+USER A                          SERVER                          USER B
+  │                               │                               │
+  │ Send message to B             │                               │
+  ├─── socket.emit('message:send')──►                              │
+  │                               │                               │
+  │                               │ 1. Save to database           │
+  │                               │ 2. Find B's socket connection │
+  │                               │                               │
+  │                               ├──── socket.emit('message:new')──►
+  │                               │                               │
+  │                               │                     B sees message
+  │                               │                     instantly!
+```
+
+---
+
+## 12. Report System
+
+### Universal Report Framework
+
+The report system generates PDFs for any role type using a **flexible template system**.
+
+### Report Types
+
+| Report | Who Gets It | Contains |
+|--------|-------------|----------|
+| **Intern Report** | Individual intern | Tasks, scores, attendance, feedback |
+| **Team Report** | Mentor/Manager | All interns' summary |
+| **Attendance Report** | HR/Admin | Company-wide attendance |
+| **Performance Report** | Management | Trends, comparisons |
+| **Exit Report** | Intern (at completion) | Full internship summary |
+
+### How Reports Work (Python Service)
+
+```
+Node.js Backend                    Python Report Service
+      │                                  │
+      │  POST /reports/generate          │
+      │  {                               │
+      │    type: "intern_report",        │
+      │    user_id: "alice_id",          │
+      │    date_range: {                 │
+      │      start: "2026-01-01",        │
+      │      end: "2026-01-31"           │
+      │    },                            │
+      │    format: "pdf"                 │
+      │  }                               │
+      ├──────────────────────────────────►
+      │                                  │
+      │                                  │ 1. Fetch data from MongoDB
+      │                                  │    - User details
+      │                                  │    - Tasks & scores
+      │                                  │    - Attendance records
+      │                                  │    - Reviews & feedback
+      │                                  │
+      │                                  │ 2. Apply report template
+      │                                  │
+      │                                  │ 3. Generate PDF
+      │                                  │
+      │                                  │ 4. Upload to S3
+      │                                  │
+      │  Response:                       │
+      │  {                               │
+      │    success: true,                │
+      │    report_url: "https://s3..."   │
+      │  }                               │
+      ◄──────────────────────────────────┤
+```
+
+### Report Template Structure
+
+Every report follows a standard structure that works for any role:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│              DASHBOARD = ROLE PERMISSIONS → WIDGETS             │
+│                      REPORT TEMPLATE                            │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│  1. Admin creates ROLE with PERMISSIONS                        │
-│                     │                                           │
-│                     ▼                                           │
-│  2. System AUTO-GENERATES dashboard for that role              │
-│                     │                                           │
-│                     ▼                                           │
-│  3. Only RELEVANT WIDGETS appear based on permissions          │
+│  SECTION 1: HEADER                                              │
+│  ───────────────────                                            │
+│  • Company logo                                                 │
+│  • Report title                                                 │
+│  • Date range                                                   │
+│  • Generated date                                               │
+│                                                                 │
+│  SECTION 2: SUBJECT INFO                                        │
+│  ─────────────────────                                          │
+│  • User name, photo                                             │
+│  • Role, department                                             │
+│  • Profile data (dynamic based on role)                        │
+│                                                                 │
+│  SECTION 3: SUMMARY METRICS                                     │
+│  ──────────────────────────                                     │
+│  • Key numbers (tasks completed, avg score, etc.)              │
+│  • Visual: pie chart, bar chart                                │
+│                                                                 │
+│  SECTION 4: DETAILED DATA                                       │
+│  ─────────────────────────                                      │
+│  • Table of tasks with scores                                  │
+│  • Attendance calendar                                         │
+│  • Reviews received                                            │
+│                                                                 │
+│  SECTION 5: ANALYSIS                                            │
+│  ────────────────────                                           │
+│  • Strengths identified                                        │
+│  • Areas for improvement                                       │
+│  • Trend analysis                                              │
+│                                                                 │
+│  SECTION 6: FOOTER                                              │
+│  ─────────────────                                              │
+│  • Generated by system                                         │
+│  • Verification code                                           │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 13. Certificate System
+
+### What Is a Certificate?
+
+At the end of an internship, interns receive a **completion certificate** that can be verified.
+
+### Certificate Generation Flow
+
+```
+ADMIN/MENTOR                    SYSTEM
+  │                               │
+  │ 1. Go to user profile         │
+  │ 2. Click "Generate Certificate│
+  │                               │
+  ├─── Generate Request ──────────►
+  │                               │
+  │                               │ 3. Gather data:
+  │                               │    - Intern name
+  │                               │    - Company name
+  │                               │    - Duration
+  │                               │    - Tasks completed
+  │                               │    - Overall score
+  │                               │    - Mentor name
+  │                               │
+  │                               │ 4. Generate certificate number
+  │                               │    "CERT-2026-001234"
+  │                               │
+  │                               │ 5. Generate verification code
+  │                               │    "abc123xyz"
+  │                               │
+  │                               │ 6. Create PDF using template
+  │                               │
+  │                               │ 7. Upload to S3
+  │                               │
+  │                               │ 8. Save certificate record
+  │                               │
+  │   ◄─── Success ───────────────┤
+  │       (download link)         │
+```
+
+### Certificate Verification
+
+Anyone can verify a certificate:
+
+```
+VERIFIER                        SYSTEM
+  │                                │
+  │ 1. Go to verify page           │
+  │    Enter code: "abc123xyz"     │
+  │                                │
+  ├─── Verify Request ─────────────►
+  │                                │
+  │                                │ 2. Look up certificate
+  │                                │
+  │   ◄─── Certificate Details ────┤
+  │       "Valid certificate"      │
+  │       Intern: Alice Johnson    │
+  │       Company: Acme Corp       │
+  │       Duration: 3 months       │
+  │       Issued: March 2026       │
+```
+
+---
+
+## 14. Dashboard & Widgets
+
+### How Dashboards Work
+
+When a user logs in, the system:
+1. Reads their role's permissions
+2. Shows only the widgets they're allowed to see
+
+### Widget Categories
+
+**Stats Widgets (Number Cards):**
+| Widget | Shows | Needs Permission |
+|--------|-------|------------------|
+| My Score | Personal score % | intern category |
+| Pending Tasks | Incomplete count | task.read |
+| Team Count | Users under you | user.read (subtree) |
+| Pending Reviews | Submissions to review | submission.review |
+
+**List Widgets:**
+| Widget | Shows | Needs Permission |
+|--------|-------|------------------|
+| My Tasks | Personal tasks | task.read (own) |
+| Team Tasks | All team's tasks | task.read (subtree) |
+| Pending Reviews | List for review | submission.review |
+| Leave Requests | Pending approvals | leave.approve |
+
+**Attendance Widgets:**
+| Widget | Shows | Needs Permission |
+|--------|-------|------------------|
+| Clock In/Out | Button to clock | attendance.clock |
+| Today's Attendance | Team status | attendance.read (subtree) |
+| Leave Balance | My remaining | always for interns |
+
+**Chart Widgets:**
+| Widget | Shows | Needs Permission |
+|--------|-------|------------------|
+| Score Trend | Progress over time | report.view |
+| Task Completion | Done vs assigned | task.read |
+| Team Performance | Compare team | report.view (subtree) |
+
+**Action Widgets:**
+| Widget | Action | Needs Permission |
+|--------|--------|------------------|
+| Create Task | Quick button | task.create |
+| Schedule Meeting | Quick button | meeting.schedule |
+| Generate Report | Quick button | report.generate |
+
+### Example: Intern Dashboard
+
+```
+Permissions: task.read (own), attendance.clock, attendance.read (own)
+
+Dashboard shows:
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐                      │
+│  │ My Score │  │ Tasks    │  │Attendance│                      │
+│  │ 85%      │  │ 3 pending│  │ 95%      │                      │
+│  └──────────┘  └──────────┘  └──────────┘                      │
+│                                                                 │
+│  ┌─────────────────────────┐  ┌───────────────────────┐        │
+│  │ My Tasks                │  │ Clock In/Out          │        │
+│  │ • Build Auth API        │  │                       │        │
+│  │ • Write Docs            │  │ [ Clock In ]          │        │
+│  └─────────────────────────┘  └───────────────────────┘        │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Example: Mentor Dashboard
+
+```
+Permissions: task.* (subtree), submission.review, attendance.read (subtree)
+
+Dashboard shows:
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│  ┌────────┐  ┌────────┐  ┌────────┐  ┌────────┐                │
+│  │Interns │  │ Tasks  │  │Reviews │  │Avg Score│               │
+│  │ 5      │  │ 15     │  │ 3      │  │ 82%    │                │
+│  └────────┘  └────────┘  └────────┘  └────────┘                │
+│                                                                 │
+│  ┌─────────────────────────┐  ┌───────────────────────┐        │
+│  │ Pending Reviews         │  │ Quick Actions         │        │
+│  │ • Alice - Auth API      │  │ [+ Create Task]       │        │
+│  │ • Bob - Database        │  │ [📊 Reports]          │        │
+│  └─────────────────────────┘  └───────────────────────┘        │
+│                                                                 │
+│  ┌───────────────────────────────────────────────────┐         │
+│  │ Team Attendance Today                             │         │
+│  │ ✓ Present: 4  ⏰ Late: 1  ✗ Absent: 0             │         │
+│  └───────────────────────────────────────────────────┘         │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 15. Tech Stack
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    TECH STACK (Backend Only)                    │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  MAIN BACKEND                      PYTHON SERVICES              │
+│  ─────────────                     ───────────────              │
+│  Node.js (Express)                 FastAPI                      │
+│  JavaScript (NO TypeScript)        AI Review Engine             │
+│  Mongoose ODM                      Report Generation (PDF)      │
+│  Socket.io (WebSocket)             Email Service                │
 │                                                                 │
 │  ─────────────────────────────────────────────────────────────│
 │                                                                 │
-│  EXAMPLE:                                                       │
-│  Role has permission: attendance.read (scope: subtree)         │
-│       ↓                                                        │
-│  Dashboard shows: "Team Attendance" widget                     │
-│                                                                 │
-│  Role has permission: submission.review                        │
-│       ↓                                                        │
-│  Dashboard shows: "Pending Reviews" widget                     │
+│  DATABASE                          FILE STORAGE                 │
+│  ────────                          ────────────                 │
+│  MongoDB                           AWS S3 / Cloudinary          │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
----
+### Service Breakdown
 
-### Complete Widget Catalog
+| Service | Language | Responsibilities |
+|---------|----------|------------------|
+| **API Server** | Node.js | REST APIs, WebSocket, business logic |
+| **AI Service** | Python | Review submissions with AI/ML |
+| **Report Service** | Python | Generate PDF reports |
+| **Email Service** | Python | Render and send emails |
 
-#### 📊 STATS WIDGETS (Number Cards)
+### Why This Stack?
 
-| Widget | What It Shows | Required Permission |
-|--------|--------------|---------------------|
-| **My Score** | Personal score % | `category: intern` |
-| **Total Tasks** | Count of tasks in scope | `task.read` |
-| **Pending Tasks** | Incomplete tasks | `task.read` |
-| **Team Count** | Users in subtree | `user.read (subtree/company)` |
-| **Pending Reviews** | Submissions to review | `submission.review` |
-| **Average Score** | Team average | `report.view (subtree)` |
-| **Attendance Rate** | % present | `attendance.read (subtree)` |
-| **Leave Requests** | Pending approvals | `leave.approve` |
-
----
-
-#### 📋 LIST WIDGETS
-
-| Widget | What It Shows | Required Permission |
-|--------|--------------|---------------------|
-| **My Tasks** | Personal assigned tasks | `Always for interns` |
-| **Upcoming Deadlines** | Tasks sorted by deadline | `task.read` |
-| **Team Tasks** | All tasks in subtree | `task.read (subtree)` |
-| **Submissions to Review** | List of pending reviews | `submission.review` |
-| **Team Members** | Users under this role | `user.read (subtree)` |
-| **Leave Requests** | Pending leave approvals | `leave.approve` |
-| **Recent Activity** | Audit log entries | `audit.view` |
+| Choice | Reason |
+|--------|--------|
+| **Node.js** | Fast, good for real-time, team familiarity |
+| **No TypeScript** | Faster development, less ceremony |
+| **MongoDB** | Flexible schema for dynamic roles |
+| **Python** | Better AI/ML libraries, PDF generation |
 
 ---
 
-#### ⏱️ ATTENDANCE WIDGETS
-
-| Widget | What It Shows | Required Permission |
-|--------|--------------|---------------------|
-| **Clock In/Out** | Button to clock | `attendance.clock` (own) |
-| **My Attendance** | Personal record | `Always for interns` |
-| **Today's Attendance** | Who's present/absent | `attendance.read (subtree)` |
-| **Weekly Attendance** | Chart of week | `attendance.read` |
-| **Leave Balance** | Remaining leaves | `Always for interns` |
-
----
-
-#### 📈 CHART WIDGETS
-
-| Widget | What It Shows | Required Permission |
-|--------|--------------|---------------------|
-| **Score Trend** | Score over time | `report.view (own/subtree)` |
-| **Task Completion** | Tasks done vs assigned | `task.read` |
-| **Attendance Chart** | Present/absent graph | `attendance.read` |
-| **Team Performance** | Compare team scores | `report.view (subtree)` |
-| **Category Breakdown** | Tasks by category | `task.read (subtree)` |
-
----
-
-#### 📅 CALENDAR/TIME WIDGETS
-
-| Widget | What It Shows | Required Permission |
-|--------|--------------|---------------------|
-| **Upcoming Meetings** | Next 3 meetings | `meeting.join` |
-| **Task Calendar** | Deadlines on calendar | `task.read` |
-| **My Schedule** | Today's meetings | `Always` |
-
----
-
-#### 🔗 INTEGRATION WIDGETS
-
-| Widget | What It Shows | Required Permission |
-|--------|--------------|---------------------|
-| **GitHub Stats** | Commits, PRs | `github.view` + connected |
-| **GitHub Activity** | Recent commits | `github.view` |
-
----
-
-#### ⚡ ACTION WIDGETS
-
-| Widget | Quick Action | Required Permission |
-|--------|-------------|---------------------|
-| **Create Task** | Button | `task.create` |
-| **Create User** | Button | `user.create` |
-| **Schedule Meeting** | Button | `meeting.schedule` |
-| **Generate Report** | Button | `report.generate` |
-| **View All Tasks** | Link | `task.read` |
-| **View All Users** | Link | `user.read` |
-
----
-
-### Permission → Widget Mapping Table
-
-| If Role Has This Permission | These Widgets Appear |
-|-----------------------------|----------------------|
-| `task.read (own)` | My Tasks, Upcoming Deadlines |
-| `task.read (subtree)` | + Team Tasks, Task Stats |
-| `task.create` | + Create Task button |
-| `submission.review` | Pending Reviews, Review count |
-| `attendance.clock` | Clock In/Out button |
-| `attendance.read (own)` | My Attendance, Leave Balance |
-| `attendance.read (subtree)` | + Today's Attendance, Attendance Chart |
-| `leave.approve` | Leave Requests widget |
-| `user.read (subtree)` | Team Members, Team Count |
-| `user.create` | Create User button |
-| `meeting.schedule` | Schedule Meeting button |
-| `meeting.join` | Upcoming Meetings |
-| `report.view (own)` | Score Trend (own) |
-| `report.view (subtree)` | + Team Performance, Average Score |
-| `report.generate` | Generate Report button |
-| `audit.view` | Recent Activity |
-| `github.view` | GitHub Stats (if connected) |
-
----
-
-### Dashboard Examples by Role
-
-#### Intern Dashboard (Minimal Permissions)
-
-Permissions: `task.read (own)`, `attendance.clock`, `attendance.read (own)`, `meeting.join`
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ Welcome, Alice 👋                                    🔔  ⚙️     │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│ ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │
-│ │ My Score     │  │ Tasks        │  │ Attendance   │           │
-│ │ 87%          │  │ 4 pending    │  │ 92% ✓        │           │
-│ └──────────────┘  └──────────────┘  └──────────────┘           │
-│                                                                 │
-│ ┌─────────────────────────────────────────┐ ┌─────────────────┐│
-│ │ My Tasks                               │ │ Clock In/Out    ││
-│ │ ▸ Build Auth API (Due: Jan 15)         │ │                 ││
-│ │ ▸ Write API Docs (Due: Jan 18)         │ │ [Clock In ▶]    ││
-│ │ ▸ Fix Login Bug (Due: Jan 12)          │ │                 ││
-│ └─────────────────────────────────────────┘ └─────────────────┘│
-│                                                                 │
-│ ┌─────────────────────────────────────────┐ ┌─────────────────┐│
-│ │ Upcoming Meetings                      │ │ Leave Balance   ││
-│ │ ▸ 1:1 with John - Today 3:00 PM       │ │ Casual: 10/12   ││
-│ │ ▸ Sprint Demo - Tomorrow 11:00 AM     │ │ Sick: 6/6       ││
-│ └─────────────────────────────────────────┘ └─────────────────┘│
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-
-Widgets shown: My Score, Tasks count, Attendance %, My Tasks list, 
-               Clock In/Out, Upcoming Meetings, Leave Balance
-```
-
----
-
-#### Mentor Dashboard (More Permissions)
-
-Permissions: `task.* (subtree)`, `submission.review`, `attendance.read (subtree)`, `user.read (subtree)`, `leave.approve`, `report.view (subtree)`
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ Dashboard                                            🔔  ⚙️     │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐         │
-│ │ 5      │ │ 12     │ │ 3      │ │ 1      │ │ 85%    │         │
-│ │Interns │ │ Tasks  │ │ Review │ │ Leave  │ │ Avg    │         │
-│ └────────┘ └────────┘ └────────┘ └────────┘ └────────┘         │
-│                                                                 │
-│ ┌─────────────────────────────────┐ ┌───────────────────────────┐
-│ │ Pending Reviews                │ │ Quick Actions             │
-│ │ ▸ Alice - Auth API (AI: 8/10)  │ │ [+ Create Task]          │
-│ │ ▸ Bob - DB Design (AI: 7/10)   │ │ [📊 Generate Report]      │
-│ │ ▸ Charlie - UI Fix (AI: 9/10)  │ │ [📅 Schedule Meeting]     │
-│ └─────────────────────────────────┘ └───────────────────────────┘
-│                                                                 │
-│ ┌─────────────────────────────────┐ ┌───────────────────────────┐
-│ │ Team Attendance Today          │ │ Team Performance         │
-│ │ ✅ Present: 4                   │ │ 📈 [Line Chart]          │
-│ │ ⏰ Late: 1                      │ │                          │
-│ │ ❌ Absent: 0                    │ │                          │
-│ └─────────────────────────────────┘ └───────────────────────────┘
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-
-Additional widgets: Team count, Leave requests count, Pending Reviews list,
-                    Quick Actions, Team Attendance, Team Performance chart
-```
-
----
-
-#### Admin Dashboard (Full Permissions)
-
-Permissions: All permissions with `company` scope
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ Admin Dashboard                                      🔔  ⚙️     │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐ ┌────────┐         │
-│ │ 25     │ │ 5      │ │ 50     │ │ 78%    │ │ 3      │         │
-│ │ Users  │ │Mentors │ │ Tasks  │ │ Attend │ │ Leave  │         │
-│ └────────┘ └────────┘ └────────┘ └────────┘ └────────┘         │
-│                                                                 │
-│ ┌──────────────────────────┐ ┌──────────────────────────────────┐
-│ │ Quick Actions           │ │ Recent Activity                 │
-│ │ [+ Create User]         │ │ ▸ John created task "API Doc"  │
-│ │ [+ Create Role]         │ │ ▸ Alice submitted "Auth API"   │
-│ │ [📊 Generate Report]    │ │ ▸ Bob clocked in at 9:15 AM    │
-│ │ [⚙️ Role Playground]    │ │ ▸ Admin approved leave for X   │
-│ └──────────────────────────┘ └──────────────────────────────────┘
-│                                                                 │
-│ ┌──────────────────────────┐ ┌──────────────────────────────────┐
-│ │ Company Performance     │ │ All Roles Overview              │
-│ │ 📈 [Chart over time]    │ │ Admin: 2 │ Mentor: 5 │ Intern: 18│
-│ └──────────────────────────┘ └──────────────────────────────────┘
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-
-Additional widgets: All stats, Role Playground access, Recent Activity,
-                    All Roles Overview, Full company charts
-```
-
----
-
-#### Reviewer Dashboard (Review-Only Permissions)
-
-Permissions: `submission.read`, `submission.review`, `submission.score`, `task.read`
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ Reviewer Dashboard                                   🔔  ⚙️     │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│ ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │
-│ │ To Review    │  │ Reviewed     │  │ Avg Score    │           │
-│ │ 5            │  │ 23           │  │ 7.8/10       │           │
-│ └──────────────┘  └──────────────┘  └──────────────┘           │
-│                                                                 │
-│ ┌───────────────────────────────────────────────────────────────┐
-│ │ Submissions Awaiting Review                                  │
-│ │                                                              │
-│ │ Task             │ Intern  │ AI Score │ Submitted  │ Action  │
-│ │ Auth API         │ Alice   │ 8/10     │ 2 hrs ago  │ [Review]│
-│ │ Database Design  │ Bob     │ 7/10     │ 1 day ago  │ [Review]│
-│ │ UI Component     │ Charlie │ 9/10     │ 3 hrs ago  │ [Review]│
-│ │ API Testing      │ David   │ 6/10     │ 5 hrs ago  │ [Review]│
-│ └───────────────────────────────────────────────────────────────┘
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-
-Only review-related widgets appear (no attendance, no user management)
-```
-
----
-
-### Widget Display Logic (Summary)
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    WIDGET VISIBILITY RULES                      │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  IF permission.scope === 'own'                                 │
-│     → Show personal data only                                  │
-│     → Widget title: "My ___"                                   │
-│                                                                 │
-│  IF permission.scope === 'direct'                              │
-│     → Show data for direct children only                       │
-│     → Widget title: "Direct ___"                               │
-│                                                                 │
-│  IF permission.scope === 'subtree'                             │
-│     → Show data for all descendants                            │
-│     → Widget title: "Team ___"                                 │
-│                                                                 │
-│  IF permission.scope === 'company'                             │
-│     → Show company-wide data                                   │
-│     → Widget title: "Company ___" or "All ___"                 │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 7. Intern Lifecycle
-
-### End-to-End Journey
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    COMPLETE INTERN JOURNEY                      │
-│                                                                 │
-│  ONBOARDING          ACTIVE               EVALUATE      EXIT   │
-│  ──────────          ──────               ────────      ────   │
-│                                                                 │
-│  ┌────────┐         ┌────────┐          ┌────────┐   ┌────────┐│
-│  │ Login  │────────►│ Tasks  │─────────►│ Review │──►│  Exit  ││
-│  │ Setup  │         │ Work   │          │ Score  │   │ Cert   ││
-│  └────────┘         └────────┘          └────────┘   └────────┘│
-│                                                                 │
-│  Week 1             Week 2-11            Ongoing      Week 12  │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Phase Details
-
-#### Phase 1: Onboarding
-
-| Step | Description |
-|------|-------------|
-| **1. Receive Invite** | Email with login credentials |
-| **2. First Login** | Set password, accept terms |
-| **3. Complete Profile** | Fill role-specific fields |
-| **4. Connect GitHub** | Optional OAuth |
-| **5. Access Workspace** | See assigned workspace |
-
-#### Phase 2: Active Work
-
-| Activity | Frequency |
-|----------|-----------|
-| **View Tasks** | Daily |
-| **Update Status** | As needed |
-| **Submit Work** | Per deadline |
-| **Clock In/Out** | Daily |
-| **Attend Meetings** | As scheduled |
-| **Participate in Discussions** | Ongoing |
-
-#### Phase 3: Evaluation
-
-| Component | Description |
-|-----------|-------------|
-| **Task Scores** | AI + Human review |
-| **Attendance** | Tracked automatically |
-| **Progress** | Cumulative score |
-| **Feedback** | Per-task remarks |
-
-#### Phase 4: Exit
-
-| Step | Description |
-|------|-------------|
-| **Complete Tasks** | Finish pending work |
-| **Final Review** | Overall performance |
-| **Generate Report** | Comprehensive summary |
-| **Certificate** | Formal completion cert |
-
----
-
-## 8. Reviewer System
-
-### When Needed
-
-- Mentor is busy
-- Need technical expert review
-- Quality assurance process
-- Second opinion on work
-
-### Configuration
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│ REVIEW SETTINGS (configured by Admin)                           │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│ Review Flow:                                                    │
-│ ○ Mentor reviews all submissions                               │
-│ ● Submissions go to designated Reviewer                        │
-│                                                                 │
-│ Reviewer Permissions:                                           │
-│ ☑ View AI score                                                │
-│ ☑ Edit AI score                                                │
-│ ☑ Add remarks                                                  │
-│ ☐ Reject submission                                            │
-│                                                                 │
-│ Visibility:                                                     │
-│ ☑ Mentor can see reviewer's feedback                           │
-│ ☑ Intern can see reviewer's name                               │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Flow
-
-```
-Intern Submits
-      │
-      ▼
-AI Review (automatic)
-      │
-      ├── If reviewer configured ──► Reviewer receives
-      │                                    │
-      │                                    ▼
-      │                             Reviewer scores
-      │                                    │
-      │                                    ▼
-      │                             Mentor can view
-      │
-      └── If no reviewer ──────────► Mentor reviews
-                                           │
-                                           ▼
-                                    Intern sees result
-```
-
----
-
-## 9. Multi-Tenant Architecture
-
-### Company Isolation
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     PLATFORM (SaaS)                             │
-│                                                                 │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐ │
-│  │   COMPANY A     │  │   COMPANY B     │  │   COMPANY C     │ │
-│  │                 │  │                 │  │                 │ │
-│  │  • Own roles    │  │  • Own roles    │  │  • Own roles    │ │
-│  │  • Own users    │  │  • Own users    │  │  • Own users    │ │
-│  │  • Own data     │  │  • Own data     │  │  • Own data     │ │
-│  │  • Own settings │  │  • Own settings │  │  • Own settings │ │
-│  │                 │  │                 │  │                 │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘ │
-│                                                                 │
-│  ──────────────────────────────────────────────────────────────│
-│                                                                 │
-│  SHARED:                                                        │
-│  • Infrastructure                                              │
-│  • AI evaluation engine                                        │
-│  • Video conferencing                                          │
-│  • Authentication system                                       │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Super Admin View
-
-| Feature | Description |
-|---------|-------------|
-| **Company Management** | Onboard, suspend, delete |
-| **Billing** | Plans, invoices |
-| **Analytics** | Platform-wide metrics |
-| **Support** | Ticket management |
-
----
-
-## 10. Core Features Summary
-
-### By Role Type
-
-| Feature | Admin | Staff Roles | Intern |
-|---------|:-----:|:-----------:|:------:|
-| Playground | ✅ | ❌ | ❌ |
-| User Management | ✅ | Varies | ❌ |
-| Task Creation | ✅ | Varies | ❌ |
-| Task Submission | ❌ | ❌ | ✅ |
-| Review | ✅ | Varies | ❌ |
-| Reports | ✅ | Varies | Self |
-| Settings | ✅ | Limited | Limited |
-
-### Feature List
-
-| Module | Features |
-|--------|----------|
-| **Tracking** | Tasks, submissions, status, deadlines |
-| **Evaluation** | AI scoring, human review, feedback |
-| **Attendance** | Clock in/out, leave requests, history |
-| **Communication** | Discussions, comments, DMs |
-| **Meetings** | Video calls, scheduling, recording |
-| **Reports** | Progress, attendance, performance |
-| **Certificates** | Completion certificate generation |
-
----
-
-## 11. Communication
-
-### Text Editors
-
-| Type | Used For | Features |
-|------|----------|----------|
-| **Simple** | DMs, comments | Text, emoji, images, attachments |
-| **Rich** | Announcements, task descriptions | Formatting, tables, links |
-
-### Channels
-
-| Channel | Visibility |
-|---------|------------|
-| **Workspace Feed** | All workspace members |
-| **Task Comments** | Assignees + creator |
-| **Private Comments** | Individual + mentor |
-| **Direct Messages** | 1-on-1 |
-
----
-
-## 12. Next Steps (To Discuss)
-
-| Topic | Status |
-|-------|--------|
-| Technology Stack | ⏳ Pending |
-| Database Schema | ⏳ Pending |
-| API Design | ⏳ Pending |
-| UI/UX Flows | ⏳ Pending |
-| Business Model | ⏳ Pending |
-
----
-
-*Document Version: 2.0*
-*Last Updated: January 12, 2026*
+*Document Version: 3.0*
+*Last Updated: January 13, 2026*
