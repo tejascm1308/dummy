@@ -19,31 +19,164 @@
 
 ## 1. Attendance System
 
-### Industry Practices
+### Supported Attendance Methods
 
-| Method | Description | Used By |
-|--------|-------------|---------|
-| **Manual Clock In/Out** | User clicks button | Most common |
-| **IP-Based** | Only from office IP | Enterprises |
-| **Geo-Fencing** | Location-based | Field work |
-| **Biometric** | Fingerprint/face | Large companies |
-| **Manager Approval** | Manager marks attendance | Traditional |
-| **Time Tracking** | Track active time | Remote teams |
-| **Calendar Integration** | Auto from meetings | Tech companies |
+Admin can configure one or more of these 4 methods:
+
+| Method | Description | Best For | How It Works |
+|--------|-------------|----------|--------------|
+| **Manual Clock In/Out** | User clicks button to start/end day | Most companies | User manually triggers clock in/out via app |
+| **Manager Approval** | Manager marks attendance for team | Traditional offices | Manager submits attendance for their team daily/weekly |
+| **Time Tracking** | Track active working time | Remote teams | System tracks active hours (app usage, activity) |
+| **Calendar Integration** | Auto-attendance from meetings | Tech companies | Syncs with Google/Outlook calendar, marks present based on meetings |
+
+### Method Details
+
+#### 1. Manual Clock In/Out
+
+```
+HOW IT WORKS:
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│  User opens app → Clicks "Clock In" → Time recorded            │
+│                                                                 │
+│  ... works during day ...                                       │
+│                                                                 │
+│  User done → Clicks "Clock Out" → Total hours calculated       │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+FEATURES:
+• Simple, familiar to users
+• Optional break tracking (clock out for lunch, clock back in)
+• Shows current status on dashboard
+• Reminder notifications if not clocked in
+```
+
+#### 2. Manager Approval
+
+```
+HOW IT WORKS:
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│  Manager opens "Team Attendance" view                           │
+│                                                                 │
+│  ┌───────────────────────────────────────────────────┐          │
+│  │ Date: January 14, 2026                            │          │
+│  │                                                   │          │
+│  │ ☑ Alice Johnson    [Present ▼]  [9:00] - [18:00] │          │
+│  │ ☑ Bob Williams     [Present ▼]  [9:15] - [18:00] │          │
+│  │ ☐ Charlie Davis    [Absent ▼]   [ -- ] - [ -- ]  │          │
+│  │                                                   │          │
+│  │                    [Submit Attendance]            │          │
+│  └───────────────────────────────────────────────────┘          │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+FEATURES:
+• Manager controls attendance for their team
+• Can set custom times for each member
+• Bulk marking for entire team
+• Good for offices without individual tracking
+```
+
+#### 3. Time Tracking
+
+```
+HOW IT WORKS:
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│  User starts day → Tracking begins                              │
+│                                                                 │
+│  System monitors:                                               │
+│  • Tab/window focus time                                        │
+│  • Task activity (editing, submitting)                         │
+│  • Meeting participation                                        │
+│  • Idle detection (configurable threshold)                     │
+│                                                                 │
+│  End of day → Total active hours calculated                    │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+CONFIGURATION:
+• Idle timeout: [15] minutes (after this, stop tracking)
+• Track only during working hours: [Yes/No]
+• Include meeting time: [Yes/No]
+• Minimum active hours for "present": [6] hours
+
+PRIVACY:
+• NO screen recording
+• NO keystroke logging
+• Only tracks: active/idle state + timestamps
+```
+
+#### 4. Calendar Integration
+
+```
+HOW IT WORKS:
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│  User connects Google Calendar / Outlook                        │
+│                                                                 │
+│  System reads calendar events for the day:                      │
+│  • 10:00 - 11:00  Team Standup                                 │
+│  • 14:00 - 15:00  1:1 with Mentor                              │
+│  • 16:00 - 17:00  Project Review                               │
+│                                                                 │
+│  Total scheduled: 3 hours                                       │
+│  Status: Present (has meetings today)                          │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+CONFIGURATION:
+• Minimum meeting hours for "present": [2] hours
+• Include external meetings: [Yes/No]
+• Only count accepted meetings: [Yes/No]
+• Fallback to manual if no calendar: [Yes/No]
+```
+
+### Combining Methods
+
+Admin can enable multiple methods. When combined:
+
+```
+EXAMPLE: Manual + Time Tracking
+
+Rule: Both must agree for "Present"
+
+• Manual clock in at 9:00
+• Time tracking shows 7 hours active
+• Manual clock out at 18:00
+
+Result: Present (both conditions met)
+
+---
+
+EXAMPLE: Calendar + Manual (Fallback)
+
+Rule: Calendar is primary, manual is fallback
+
+• If user has 3+ hours of meetings → Auto-marked present
+• If user has <3 hours meetings → Must clock in manually
+```
 
 ### Our Implementation
-
-We'll support **configurable methods** per company:
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │ ATTENDANCE CONFIGURATION (Company Admin)                        │
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
-│ Tracking Method:                                                │
-│ ☑ Manual clock in/out                                          │
-│ ☐ IP restriction (whitelist IPs)                               │
-│ ☐ Geo-fencing (office location)                                │
+│ Primary Method:                                                 │
+│ ○ Manual Clock In/Out                                          │
+│ ○ Manager Approval                                             │
+│ ○ Time Tracking                                                │
+│ ○ Calendar Integration                                         │
+│                                                                 │
+│ Secondary Method (optional):                                    │
+│ ☐ Enable fallback method: [Manual Clock In/Out ▼]              │
+│                                                                 │
+│ ─────────────────────────────────────────────────────────────  │
 │                                                                 │
 │ Working Hours:                                                  │
 │ Start: [09:00]  End: [18:00]  Timezone: [Asia/Kolkata ▼]       │
@@ -56,6 +189,8 @@ We'll support **configurable methods** per company:
 │ Minimum hours for half day: [4] hours                          │
 │ Minimum hours for full day: [8] hours                          │
 │                                                                 │
+│ ─────────────────────────────────────────────────────────────  │
+│                                                                 │
 │ Leave Types:                                                    │
 │ ☑ Casual Leave (quota: [12] per year)                          │
 │ ☑ Sick Leave (quota: [6] per year)                             │
@@ -65,36 +200,64 @@ We'll support **configurable methods** per company:
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### Attendance Flow
+### Attendance Flow (By Method)
 
 ```
-CLOCK IN
-    │
-    ├── Check restrictions (IP/Geo if enabled)
-    │       │
-    │       ├── Pass → Record clock in time
-    │       │
-    │       └── Fail → Show error, suggest WFH request
-    │
-    ▼
-DURING DAY
-    │
-    ├── Break tracking (optional)
-    │
-    ▼
-CLOCK OUT
-    │
-    ├── Calculate total hours
-    │
-    ├── Determine status:
-    │       │
-    │       ├── Present (≥ min hours)
-    │       ├── Half Day (≥ half day hours)
-    │       ├── Late (clock in after grace)
-    │       └── Early Leave (clock out before time)
-    │
-    ▼
-RECORD SAVED
+┌─────────────────────────────────────────────────────────────────┐
+│                    ATTENDANCE FLOW BY METHOD                    │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  MANUAL CLOCK IN/OUT:                                           │
+│  User → Clock In → [Work] → Clock Out → Hours calculated       │
+│                                                                 │
+│  ─────────────────────────────────────────────────────────────  │
+│                                                                 │
+│  MANAGER APPROVAL:                                              │
+│  Manager → Opens Team View → Marks attendance → Submit         │
+│                                                                 │
+│  ─────────────────────────────────────────────────────────────  │
+│                                                                 │
+│  TIME TRACKING:                                                 │
+│  System → Tracks activity → Detects idle → Calculates hours    │
+│                                                                 │
+│  ─────────────────────────────────────────────────────────────  │
+│                                                                 │
+│  CALENDAR INTEGRATION:                                          │
+│  System → Reads calendar → Counts meeting hours → Marks status │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Status Calculation
+
+Regardless of method, the final status is calculated as:
+
+```
+STATUS RULES:
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│  Hours >= Full Day Hours (default: 8)                          │
+│  └── Status: PRESENT                                           │
+│                                                                 │
+│  Hours >= Half Day Hours (default: 4) AND < Full Day           │
+│  └── Status: HALF_DAY                                          │
+│                                                                 │
+│  Hours < Half Day Hours                                         │
+│  └── Status: ABSENT (or requires explanation)                  │
+│                                                                 │
+│  Clock in after grace period                                    │
+│  └── Flag: LATE (still Present, but flagged)                   │
+│                                                                 │
+│  Clock out before end time - grace period                       │
+│  └── Flag: EARLY_LEAVE (still Present, but flagged)            │
+│                                                                 │
+│  Approved leave for the day                                     │
+│  └── Status: LEAVE (type recorded)                             │
+│                                                                 │
+│  Approved WFH for the day                                       │
+│  └── Status: WFH (still tracks hours if enabled)               │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 ### Leave Request Flow
@@ -127,14 +290,16 @@ APPROVER ACTION
 | Field | Type | Description |
 |-------|------|-------------|
 | `date` | DATE | Attendance date |
-| `clock_in` | TIMESTAMP | When clocked in |
-| `clock_out` | TIMESTAMP | When clocked out |
-| `total_hours` | DECIMAL | Calculated hours |
+| `method` | ENUM | manual, manager, time_tracking, calendar |
+| `clock_in` | TIMESTAMP | When day started (or first activity) |
+| `clock_out` | TIMESTAMP | When day ended (or last activity) |
+| `total_hours` | DECIMAL | Calculated/tracked hours |
+| `active_hours` | DECIMAL | For time tracking - actual active time |
+| `meeting_hours` | DECIMAL | For calendar - meeting hours |
 | `status` | ENUM | present, half_day, absent, leave, wfh |
 | `late_by` | INTEGER | Minutes late |
 | `early_by` | INTEGER | Minutes early |
-| `clock_in_ip` | VARCHAR | IP address |
-| `clock_in_location` | POINT | Lat/long if geo |
+| `marked_by` | ObjectId | For manager approval - who marked it |
 | `notes` | TEXT | Any remarks |
 
 ---
@@ -288,24 +453,35 @@ Every permission has a **scope**: `own` | `direct` | `subtree` | `company`
 
 ---
 
-### ATTENDANCE (14 permissions)
+### ATTENDANCE (18 permissions)
 
 | Permission | Description | Typical Roles |
 |------------|-------------|---------------|
+| **Manual Clock In/Out** | | |
 | `attendance.clock_in` | Clock in (self) | Intern, Staff |
 | `attendance.clock_out` | Clock out (self) | Intern, Staff |
+| `attendance.break.start` | Start break (self) | Intern, Staff |
+| `attendance.break.end` | End break (self) | Intern, Staff |
+| **Manager Approval** | | |
+| `attendance.team.mark` | Mark attendance for team members | Manager, Mentor |
+| `attendance.team.submit` | Submit team attendance | Manager |
+| **Time Tracking** | | |
+| `attendance.tracking.view` | View time tracking data | Manager, self |
+| `attendance.tracking.configure` | Configure time tracking settings | Admin |
+| **Calendar Integration** | | |
+| `attendance.calendar.connect` | Connect calendar account | self |
+| `attendance.calendar.sync` | Manually sync calendar | self |
+| **General** | | |
 | `attendance.read` | View attendance records | Manager, HR |
 | `attendance.edit` | Edit attendance record | HR, Admin |
 | `attendance.delete` | Delete attendance record | Super Admin |
 | `attendance.export` | Export attendance data | HR, Admin |
 | `attendance.late.excuse` | Excuse late arrival | Manager |
 | `attendance.early_leave.excuse` | Excuse early departure | Manager |
-| `attendance.mark_wfh` | Mark as WFH for specific day | Manager, self |
-| `attendance.mark_absent` | Mark as absent | HR |
 | `attendance.regularize` | Request attendance regularization | Intern |
 | `attendance.regularize.approve` | Approve regularization | Manager |
 | `attendance.summary.view` | View attendance summary/stats | Manager, HR |
-| `attendance.config.manage` | Manage attendance settings | Admin |
+| `attendance.config.manage` | Manage attendance settings & methods | Admin |
 
 ---
 

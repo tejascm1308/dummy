@@ -780,15 +780,30 @@ This gives us **trackable, comparable data** across all interns.
 
 Attendance answers: **"Is the intern actually working?"**
 
+### 4 Attendance Methods
+
+Admin can configure one or more of these methods:
+
+| Method | How It Works | Best For |
+|--------|--------------|----------|
+| **Manual Clock In/Out** | User clicks button to start/end day | Most companies |
+| **Manager Approval** | Manager marks attendance for team | Traditional offices |
+| **Time Tracking** | System tracks active working hours | Remote teams |
+| **Calendar Integration** | Auto-attendance from meetings | Tech companies |
+
 ### What We Track
 
 | Data | Tracking Purpose |
 |------|------------------|
+| `method` | How was attendance recorded? |
 | `clock_in` | What time did they start? |
 | `clock_out` | What time did they leave? |
 | `total_hours` | How long did they work? |
+| `active_hours` | Actual working time (for time tracking) |
+| `meeting_hours` | Meeting time (for calendar) |
 | `status` | Present, half-day, absent? |
 | `late_by_minutes` | Were they late? How late? |
+| `marked_by` | Who marked it? (for manager approval) |
 
 ### Attendance Tracking Metrics
 
